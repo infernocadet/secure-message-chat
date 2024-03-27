@@ -1,0 +1,15 @@
+<!-- 
+This page shows the friends list of the current user
+-->
+{% extends 'base.jinja' %}
+
+{% block content %} 
+    <h1>Here are your friends: for {{ username }}</h1>
+    <ul>
+    {% set list1 = friends %}
+    {% for item in list1 %}
+        <li>{{ item }}</li>
+    {% endfor %}
+    </ul>
+    
+{% endblock %}

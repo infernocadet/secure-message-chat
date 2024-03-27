@@ -82,7 +82,10 @@ def home():
         abort(404)
     return render_template("home.jinja", username=request.args.get("username"))
 
-
+@app.route("/friends")
+def friends():
+    friendslist = ["Bob", "Alice", "Robot"]
+    return render_template("friends.jinja", friends=friendslist, username="Marc")
 
 if __name__ == '__main__':
     socketio.run(app)
