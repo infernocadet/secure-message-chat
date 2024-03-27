@@ -84,7 +84,7 @@ def home():
 
 @app.route("/friends")
 def friends():
-    friendslist = ["Bob", "Alice", "Robot"]
+    friendslist = ["Bob", "Alice", "Robot", "Marc"]
     return render_template("friends.jinja", friends=friendslist, username="Marc")
 
 if __name__ == '__main__':
