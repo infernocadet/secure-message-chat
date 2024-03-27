@@ -36,6 +36,12 @@ def index():
     return render_template("index.jinja")
 ```
 
+```python
+@app.route("/login")
+def login():    
+    return render_template("login.jinja")
+```
+
 this relates to **app routing**, which maps a URL to a specific function that will handle the logic for that URL. here, ```"/"``` refers to the root of our web app. we define an ```index()``` function which is now mapped with the root path and the output of the function is rendered on the browser.
 
 we can even build dynamic URLs by using variables in the URL. 
@@ -49,11 +55,22 @@ def show_user(username):
 more on ```render_template``` later, but in this case, we are showing the ```index.jinja``` file to the user.
 
 ```python
-@app.route("/login")
-def login():    
-    return render_template("login.jinja")
+@app.route("/login/user", methods=["POST"])
+def login_user():
+    if not request.is_json:
+        abort(404)
+
+    username = request.json.get("username")
+    password = request.json.get("password")
+
+    user =  db.get_user(username)
+    if user is None:
+        return "Error: User does not exist!"
+
+    if user.password != password:
+        return "Error: Password does not match!"
+
+    return url_for('home', username=request.json.get("username"))
 ```
 
-same as above. 
-
-
+the comment on this function says ```"handles a post request when the user clicks the log in button"```. what is a **post** request? [HTTP](https://www.w3schools.com/tags/ref_httpmethods.asp) works as a request
