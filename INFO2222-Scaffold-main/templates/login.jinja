@@ -40,7 +40,7 @@
             // axios post is a fancy way of posting a request to the server,
             // we pass in the username and password here
             let res = await axios.post(loginURL, {
-                username: $("#username").val(),
+                username: $("#username").val(), // using jQuery to select HTML element with id=username. .val() gets the value of that input field
                 password: $("#password").val()
             });
 
