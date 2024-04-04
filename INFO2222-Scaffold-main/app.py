@@ -4,7 +4,7 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-from flask import Flask, render_template, request, abort, url_for
+from flask import Flask, render_template, request, abort, url_for, jsonify
 from flask_socketio import SocketIO
 import db
 import secrets
@@ -86,6 +86,29 @@ def home():
 def friends():
     friendslist = ["Bob", "Alice", "Robot", "Marc"]
     return render_template("friends.jinja", friends=friendslist, username="Marc")
+
+@app.route("/add_friend", methods=['POST'])
+def add_friend():
+    data = request.json()
+    current_user_username = data['current_user']
+    friend_username = data['friend_user']
+
+    current_user = db.get_user(current_user_username)
+    friend_user = db.get_user(friend_username)
+
+    if not current_user or not friend_user:
+        return jsonify({"error": "User not found"}), 404
+
+    # update friends relationship
+    current_user.friends.append(friend_user)
+
+    # may have to wait til they are approved or something. idk
+
+    with db.Session.begin():
+        db.Session.add(current_user)
+        # db.Session.add(friend_user)
+    
+    return jsonify({"success": True}), 200
 
 if __name__ == '__main__':
     socketio.run(app)
