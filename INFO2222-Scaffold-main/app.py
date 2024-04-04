@@ -6,8 +6,11 @@ the socket event handlers are inside of socket_routes.py
 
 from flask import Flask, render_template, request, abort, url_for, jsonify
 from flask_socketio import SocketIO
+from sqlalchemy.orm import sessionmaker
 import db
 import secrets
+from db import engine, Session
+from models import User
 
 # import logging
 
@@ -23,6 +26,9 @@ socketio = SocketIO(app)
 
 # don't remove this!!
 import socket_routes
+
+# session class bound to the engine
+Session = sessionmaker(bind=engine)
 
 # index page
 @app.route("/")
@@ -89,25 +95,25 @@ def friends():
 
 @app.route("/add_friend", methods=['POST'])
 def add_friend():
-    data = request.json()
-    current_user_username = data['current_user']
-    friend_username = data['friend_user']
+    if not request.is_json:
+        abort(404)    
+    current_user_username = request.json.get("current_user")
+    friend_username = request.json.get("friend_user")
 
-    current_user = db.get_user(current_user_username)
-    friend_user = db.get_user(friend_username)
+    session = Session()
+
+    current_user = session.query(User).filter_by(username=current_user_username).first()
+    friend_user = session.query(User).filter_by(username=friend_username).first()
 
     if not current_user or not friend_user:
-        return jsonify({"error": "User not found"}), 404
-
-    # update friends relationship
-    current_user.friends.append(friend_user)
-
-    # may have to wait til they are approved or something. idk
-
-    with db.Session.begin():
-        db.Session.add(current_user)
-        # db.Session.add(friend_user)
+        session.close()
+        return jsonify({"error": "user not found"}), 404
     
+    current_user.friends.append(friend_user)
+    friend_user.friends.append(current_user)
+
+    session.commit()
+    session.close()
     return jsonify({"success": True}), 200
 
 if __name__ == '__main__':

@@ -63,7 +63,7 @@
 <h1>Add friend</h1>
 <form id="addFriendForm">
     <label for="friendUsername">Friend's Username:</label>
-    <input id="friendUsername" name = "friendUsername" type="text" required />
+    <input id="friendUsername" name ="friendUsername" type="text" required />
     <button type="submit">Add Friend</button>
 </form>
 
@@ -166,10 +166,29 @@
         box.append(child);
     }
 
-    function add_friend(){
-        let loginURL = "{{ url_for('add_friend') }}"
-        // do stuff
-    }
+    document.getElementById('addFriendForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // prevent form from submitting the traditional way
+
+        let friendUsername = document.getElementById('friendUsername').value;
+        let currentUsername = "{{ username }}";
+
+        // construct url for the post event
+        let addFriendURL = "{{ url_for('add_friend') }}"
+
+        // use axios to send post request
+        axios.post(addFriendURL, {
+            current_user: currentUsername,
+            friend_user: friendUsername
+        })
+        .then(function (response) {
+            console.log(response.data);
+            alert("friend request sent!")
+        })
+        .catch(function (error) {
+            console.error('Error:', error)
+            alert("Failed to send friend request")
+        });
+    });
     
 </script>
 {% endblock %}

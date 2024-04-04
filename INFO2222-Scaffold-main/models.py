@@ -21,8 +21,8 @@ class Base(DeclarativeBase):
     pass
 
 friend_table = Table('friends', Base.metadata, 
-    Column('user_id', Integer, ForeignKey('user.username'), primary_key=True),
-    Column('friend_id', Integer, ForeignKey('user.username'), primary_key=True)
+    Column('user_id', String, ForeignKey('user.username'), primary_key=True),
+    Column('friend_id', String, ForeignKey('user.username'), primary_key=True)
 )
 
 # model to store user information
