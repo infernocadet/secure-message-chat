@@ -59,6 +59,14 @@
     </section>
 </main>
 
+<!-- Friends form to add friends -->
+<h1>Add friend</h1>
+<form id="addFriendForm">
+    <label for="friendUsername">Friend's Username:</label>
+    <input id="friendUsername" name = "friendUsername" type="text" required />
+    <button type="submit">Add Friend</button>
+</form>
+
 <script src="/static/js/libs/socket.io.min.js"></script>
 <script>
     let room_id = 0;
@@ -156,6 +164,11 @@
         let box = $("#message_box");
         let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
         box.append(child);
+    }
+
+    function add_friend(){
+        let loginURL = "{{ url_for('add_friend') }}"
+        // do stuff
     }
     
 </script>
