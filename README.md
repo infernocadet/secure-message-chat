@@ -139,7 +139,7 @@ How do we handle this in our website? First we need a form:
     <button type="submit">Add Friend</button>
 </form>
 ```
-Here, we've made a form, which we can reference through its ```id```, ```addFriendForm```.
+Here, we've made a form, which we can reference through its ```id```, ```addFriendForm```. The main thing here is th
 
 
 ```javascript

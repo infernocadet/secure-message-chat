@@ -20,6 +20,9 @@ from typing import Dict, List
 class Base(DeclarativeBase):
     pass
 
+# helper friends table, to link users together for a many-to-many relationship
+# columns are composite keys to ensure not null and unique pairs
+# user_id and friend_id are foreign keys which point to the main user.username
 friend_table = Table('friends', Base.metadata, 
     Column('user_id', String, ForeignKey('user.username'), primary_key=True),
     Column('friend_id', String, ForeignKey('user.username'), primary_key=True)
@@ -37,6 +40,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
 
+    # establishing relationship with user model. joins with the friend_table.
+    # back_populates ensures that adding friends is bi-directional
     friends: Mapped[List["User"]] = relationship(
         "User",
         secondary=friend_table,
@@ -45,7 +50,23 @@ class User(Base):
         back_populates="friends"
     )
 
-    
+    sent_requests: Mapped[List["FriendRequest"]] = relationship(
+        "FriendRequest",
+        foreign_keys="[FriendRequest.sender_id]",
+        backref="sender"
+    )
+    received_requests: Mapped[List["FriendRequest"]] = relationship(
+        "FriendRequest",
+        foreign_keys="[FriendRequest.receiver_id]",
+        backref="receiver"
+    )
+
+class FriendRequest(Base):
+    __tablename__ = "friendrequests"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sender_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    receiver_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    status: Mapped[str] = mapped_column(String)    
 
 # stateful counter used to generate the room id
 class Counter():

@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 import db
 import secrets
 from db import engine, Session
-from models import User
+from models import User, FriendRequest
 
 # import logging
 
@@ -95,11 +95,19 @@ def home():
             abort(404)
         
         friends = current_user.friends[:]
+
+        incoming_friends = session.query(FriendRequest).filter(FriendRequest.receiver_id == current_user_username, FriendRequest.status == "pending").all()
+        incoming_requests = [
+            {
+                'id': req.id,
+                'sender_username': req.sender_id
+            } for req in incoming_friends
+        ]
     
     finally:
         session.close()
 
-    return render_template("home.jinja", username=current_user_username, friends=friends)
+    return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests)
 
 @app.route("/add_friend", methods=['POST'])
 def add_friend():
@@ -117,12 +125,82 @@ def add_friend():
         session.close()
         return jsonify({"error": "user not found"}), 404
     
-    current_user.friends.append(friend_user)
-    friend_user.friends.append(current_user)
-
+    friend_request = FriendRequest(sender=current_user, receiver=friend_user, status='pending')
+    session.add(friend_request)
     session.commit()
     session.close()
     return jsonify({"success": True}), 200
+
+
+@app.route("/accept_friend_request", methods=['POST'])
+def accept_friend_request():
+
+    if not request.is_json:
+        abort(404)
+    request_id = request.json.get("request_id")
+    
+    session = Session()
+    try:
+        friend_request = session.query(FriendRequest).filter_by(id=request_id).first()
+
+        if friend_request is None:
+            return jsonify({"error": "Friend request not found"}), 404
+
+        # TODO: Check if the current user (from session or token) is the receiver of the friend request
+        # This makes sure that actions are authenticated
+
+        friend_request.status = "accepted"
+        sender = friend_request.sender
+        receiver = friend_request.receiver
+
+        sender.friends.append(receiver)
+        receiver.friends.append(sender)
+        
+        session.delete(friend_request)
+        session.commit()
+        return jsonify({"success": "Friend request accepted"}), 200
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        session.close()
+
+
+
+@app.route("/reject_friend_request", methods=['POST'])
+def reject_friend_request():
+
+    if not request.is_json:
+        abort(404)
+    request_id = request.json.get("request_id")
+    
+    session = Session()
+    try:
+        friend_request = session.query(FriendRequest).filter_by(id=request_id).first()
+
+        if friend_request is None:
+            return jsonify({"error": "Friend request not found"}), 404
+        
+        # TODO: Check if the current user (from session or token) is the receiver of the friend request
+        # This makes sure that actions are authenticated
+        # Then we can delete the friend request too if we want. but if we see if a previous request was rejected
+        # then maybe we can stop further invitations
+
+        # session.delete(friend_request)
+        friend_request.status = "rejected"
+        session.commit()
+        return jsonify({"success": "Friend request rejected"}), 200
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        session.close()
+
+        
 
 if __name__ == '__main__':
     socketio.run(app)
