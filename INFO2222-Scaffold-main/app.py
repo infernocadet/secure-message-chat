@@ -84,14 +84,22 @@ def page_not_found(_):
 # home page, where the messaging app is
 @app.route("/home")
 def home():
-    if request.args.get("username") is None:
+    current_user_username = request.args.get("username")
+    if current_user_username is None:
         abort(404)
-    return render_template("home.jinja", username=request.args.get("username"))
 
-@app.route("/friends")
-def friends():
-    friendslist = ["Bob", "Alice", "Robot", "Marc"]
-    return render_template("friends.jinja", friends=friendslist, username="Marc")
+    session = Session()
+    try:
+        current_user = session.query(User).filter_by(username=current_user_username).first()
+        if current_user is None:
+            abort(404)
+        
+        friends = current_user.friends[:]
+    
+    finally:
+        session.close()
+
+    return render_template("home.jinja", username=current_user_username, friends=friends)
 
 @app.route("/add_friend", methods=['POST'])
 def add_friend():
