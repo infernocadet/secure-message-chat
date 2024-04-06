@@ -58,6 +58,7 @@ def login_user():
 
     return url_for('home', username=request.json.get("username"))
 
+
 # handles a get request to the signup page
 @app.route("/signup")
 def signup():
@@ -103,11 +104,19 @@ def home():
                 'sender_username': req.sender_id
             } for req in incoming_friends
         ]
+
+        sent_requests = session.query(FriendRequest).filter(FriendRequest.sender_id == current_user_username, FriendRequest.status == "pending").all()
+        sent_requests_list = [
+            {
+                'id': sent.id,
+                'receiver_username': sent.receiver_id
+            } for sent in sent_requests
+        ]
     
     finally:
         session.close()
 
-    return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests)
+    return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests, sent_requests=sent_requests_list)
 
 @app.route("/add_friend", methods=['POST'])
 def add_friend():
@@ -118,6 +127,7 @@ def add_friend():
 
     session = Session()
 
+    # get the User object for current user and friend user from database
     current_user = session.query(User).filter_by(username=current_user_username).first()
     friend_user = session.query(User).filter_by(username=friend_username).first()
 

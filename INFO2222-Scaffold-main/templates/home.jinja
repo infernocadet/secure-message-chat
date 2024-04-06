@@ -63,13 +63,29 @@
             {% set incoming_list = incoming_friends %}
             {% for item in incoming_list %}
                 <li>
-                    {{ item.sender_username }}
+                    {{ item.sender_id }}
                     <button onclick="acceptfriendRequest('{{ item.id }}')">Accept</button>
                     <button onclick="rejectfriendRequest('{{ item.id }}')">Reject</button>
                     <p id="requestResponse" style="display:none;"></p>
                 </li>
             {% endfor %}
         </ul>
+    {% else %}
+        <p>No incoming requests.</p>
+    {% endif %}
+    <h2>Sent Requests</h2>
+    {% if sent_requests %}
+        <ul>
+            {% set sent_list = sent_requests %}
+            {% for sent in sent_list %}
+                <li>
+                    {{ sent.receiver_username }}
+                </li>
+            {% endfor %}
+        
+        </ul>
+    {% else %}
+        <p>No sent requests. Go and add someone!</p>
     {% endif %}
 </aside>
 
