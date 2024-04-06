@@ -28,6 +28,7 @@ friend_table = Table('friends', Base.metadata,
     Column('friend_id', String, ForeignKey('user.username'), primary_key=True)
 )
 
+
 # model to store user information
 class User(Base):
     __tablename__ = "user"
@@ -63,10 +64,11 @@ class User(Base):
 
 class FriendRequest(Base):
     __tablename__ = "friendrequests"
+    # in the case we want to track if a user is spamming requests
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     sender_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     receiver_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    status: Mapped[str] = mapped_column(String)    
+    status: Mapped[str] = mapped_column(String) # ["rejected", "pending", "accepted"]    
 
 # stateful counter used to generate the room id
 class Counter():

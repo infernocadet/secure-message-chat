@@ -63,7 +63,7 @@
             {% set incoming_list = incoming_friends %}
             {% for item in incoming_list %}
                 <li>
-                    {{ item.sender_id }}
+                    {{ item.sender_username }}
                     <button onclick="acceptfriendRequest('{{ item.id }}')">Accept</button>
                     <button onclick="rejectfriendRequest('{{ item.id }}')">Reject</button>
                     <p id="requestResponse" style="display:none;"></p>
