@@ -225,11 +225,15 @@
         box.append(child);
     }
 
+    // adding friend function
     document.getElementById('friendrequestForm').addEventListener('submit', function(event) {
         event.preventDefault(); // prevent form from submitting the traditional way
 
         let friendUsername = document.getElementById('friendUsername').value;
         let currentUsername = "{{ username }}";
+
+        // add in error handling to prevent users from adding themselves
+        // TODO
 
         // construct url for the post event
         let addFriendURL = "{{ url_for('add_friend') }}";

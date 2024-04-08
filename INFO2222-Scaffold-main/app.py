@@ -116,7 +116,7 @@ def home():
     finally:
         session.close()
 
-    return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_friends, sent_requests=sent_requests_list)
+    return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests, sent_requests=sent_requests_list)
 
 @app.route("/add_friend", methods=['POST'])
 def add_friend():
