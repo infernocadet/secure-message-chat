@@ -48,24 +48,24 @@
 <aside id="friends_list">
     <h2>Friends</h2> 
     {% if friends %}
-        <ul>
+        <ul id="friendsList">
             {% set user_friends = friends %}
             {% for item in user_friends %}
-            <li>{{ item.username }}</li>
+            <li id=""friend-{{ item.username }}>{{ item.username }}</li>
             {% endfor %}
         </ul>
     {% else %}
-        <p>It's a bit lonely in here...</p>
+        <p id="lonelyMessage">It's a bit lonely in here...</p>
     {% endif %}
     <h2>Incoming Requests</h2>
     {% if incoming_friends %}
         <ul>
             {% set incoming_list = incoming_friends %}
             {% for item in incoming_list %}
-                <li>
+                <li id=""friend-request-{{ item.id }}>
                     {{ item.sender_username }}
-                    <button onclick="acceptfriendRequest('{{ item.id }}')">Accept</button>
-                    <button onclick="rejectfriendRequest('{{ item.id }}')">Reject</button>
+                    <button onclick="acceptfriendRequest('{{ item.id }}', this)">Accept</button>
+                    <button onclick="rejectfriendRequest('{{ item.id }}', this)">Reject</button>
                     <p id="requestResponse" style="display:none;"></p>
                 </li>
             {% endfor %}
@@ -259,12 +259,41 @@
         });
     });
 
-    function acceptfriendRequest(requestID) {
+    function acceptfriendRequest(requestID, element) {
         let acceptURL = "{{ url_for('accept_friend_request') }}"
         axios.post(acceptURL, {
             request_id: requestID
         })
         .then(function (response) {
+
+            // on success, remove the friend request from the UI
+            element.closest('li').remove();
+
+            // backend sends username of new friend
+            let newFriendUsername = response.data.newFriendUsername;
+
+            // update friend list in UI
+            let friendsList = document.getElementById('friendsList');
+            if (!friendsList){
+                // user had no friends
+                let friendsContainer = document.querySelector('#friends_list h2');
+                friendsContainer.insertAdjacentHTML('afterend', '<ul id="friendsList"></ul>');
+                friendsList = document.getElementById('friendsList');
+            }
+
+            let newFriendItem = document.createElement('li');
+            newFriendItem.textContent = newFriendUsername;
+            newFriendItem.id = "friend-" + newFriendUsername;
+
+            friendsList.appendChild(newFriendItem);
+
+            // hide lonely message
+            let lonelyMessage = document.querySelector('p#lonelyMessage');
+            if (lonelyMessage){
+                lonelyMessage.remove()
+            }
+
+            // success message
             console.log(response.data);
             document.getElementById('requestResponse').textContent = "You accepted the request!";
             document.getElementById('requestResponse').style.display = 'block';
@@ -277,15 +306,20 @@
         
     };
 
-    function rejectfriendRequest(requestID) {
+    function rejectfriendRequest(requestID, element) {
         let rejectURL = "{{ url_for('reject_friend_request') }}"
         axios.post(rejectURL, {
             request_id: requestID
         })
         .then(function (response) {
+
+            // on success, remove friend request from UI
+            element.closest('li').remove();
+
             console.log(response.data);
             document.getElementById('requestResponse').textContent = "You rejected the request!";
             document.getElementById('requestResponse').style.display = 'block';
+
         })
         .catch(function (error){
             console.error('Error:', error)

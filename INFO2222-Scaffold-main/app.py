@@ -154,6 +154,7 @@ def accept_friend_request():
         friend_request = session.query(FriendRequest).filter_by(id=request_id).first()
 
         if friend_request is None:
+            session.close()
             return jsonify({"error": "Friend request not found"}), 404
 
         # TODO: Check if the current user (from session or token) is the receiver of the friend request
@@ -168,7 +169,7 @@ def accept_friend_request():
         
         session.delete(friend_request)
         session.commit()
-        return jsonify({"success": "Friend request accepted"}), 200
+        return jsonify({"success": "Friend request accepted", "newFriendUsername": sender.username}), 200
 
     except Exception as e:
         session.rollback()
