@@ -233,8 +233,12 @@
         let currentUsername = "{{ username }}";
 
         // add in error handling to prevent users from adding themselves
-        // TODO
-
+        if (friendUsername == currentUsername) {
+            document.getElementById('friendRequestMessage').textContent = "Can add yourself buddy";
+            document.getElementById('friendRequestMessage').style.display = 'block';
+            return new Error("Error message");
+        }
+        
         // construct url for the post event
         let addFriendURL = "{{ url_for('add_friend') }}";
 
