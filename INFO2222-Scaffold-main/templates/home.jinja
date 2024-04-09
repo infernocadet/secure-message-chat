@@ -24,16 +24,23 @@
         margin-bottom: 2px;
     }
 
-    #friends_list {
-        position: fixed; /* Fixed position */
-        right: 0; /* Align to the right side of the window */
-        top: 0; /* Align to the top of the window */
-        width: 250px; /* Set a width for the sidebar */
-        height: 100vh; /* Full height of the viewport */
-        border-left: 1px solid black; /* Add a border to separate from content */
-        padding-left: 10px; /* Padding for aesthetic spacing */
-        background-color: #f9f9f9; /* A light background */
-        overflow-y: auto; /* Enable scrolling if the list is long */
+    #sidebar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 250px;
+        height: 100vh;
+        overflow-y: auto;
+        background-color: #EEEEEE
+    }
+
+    aside {
+        border-bottom: 1px solid black;
+        padding: 10px;
+    }
+
+    aside h2 {
+        margin-top: 0;
     }
 
 </style>
@@ -45,7 +52,70 @@
     </ol>
 </nav>
 
-<aside id="friends_list">
+<div id="sidebar">
+    <!-- Friends Section -->
+    <aside id="friendsSection">
+        <h2>Friends</h2>
+        <div id="friendsContent">
+            {% if friends %}
+                <ul id="friendsList">
+                {% set user_friends = friends %}
+                {% for item in user_friends %}
+                <li id=""friend-{{ item.username }}>{{ item.username }}</li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p id="lonelyMessage">It's a bit lonely in here...</p>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Incoming Requests Section -->
+    <aside id="incomingRequestsSection">
+        <h2>Incoming Requests</h2>
+        <div id="incomingFriendsContent">
+            {% if incoming_friends %}
+                <ul>
+                    {% set incoming_list = incoming_friends %}
+                    {% for item in incoming_list %}
+                        <li id=""friend-request-{{ item.id }}>
+                            {{ item.sender_username }}
+                            <button onclick="acceptfriendRequest('{{ item.id }}', this)">Accept</button>
+                            <button onclick="rejectfriendRequest('{{ item.id }}', this)">Reject</button>
+                            <p id="requestResponse" style="display:none;"></p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No incoming requests.</p>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Sent Requests Section -->
+    <aside id="sentRequestsSection">
+        <h2>Sent Requests</h2>
+        <div id="sentRequestsContent">
+            {% if sent_requests %}
+                <ul>
+                    {% set sent_list = sent_requests %}
+                    {% for sent in sent_list %}
+                        <li>
+                            {{ sent.receiver_username }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No sent requests. Go and add someone!</p>
+            {% endif %}    
+        </div>
+    </aside>
+
+</div>
+
+<!-- old design -->
+
+{# <aside id="friends_list">
     <h2>Friends</h2> 
     {% if friends %}
         <ul id="friendsList">
@@ -86,7 +156,7 @@
     {% else %}
         <p>No sent requests. Go and add someone!</p>
     {% endif %}
-</aside>
+</aside> #}
 
 
 
@@ -233,7 +303,7 @@
 
         // add in error handling to prevent users from adding themselves
         if (friendUsername == currentUsername) {
-            document.getElementById('friendRequestMessage').textContent = "Can add yourself buddy";
+            document.getElementById('friendRequestMessage').textContent = "Can't add yourself buddy";
             document.getElementById('friendRequestMessage').style.display = 'block';
             return new Error("Error message");
         }
@@ -271,26 +341,31 @@
             // backend sends username of new friend
             let newFriendUsername = response.data.newFriendUsername;
 
-            // update friend list in UI
+            // get all the current friends list elements
             let friendsList = document.getElementById('friendsList');
+            let friendsSection = document.getElementById('friendsSection');
+            let lonelyMessage = document.getElementById('lonelyMessage');
+
             if (!friendsList){
                 // user had no friends
-                let friendsContainer = document.querySelector('#friends_list h2');
-                friendsContainer.insertAdjacentHTML('afterend', '<ul id="friendsList"></ul>');
-                friendsList = document.getElementById('friendsList');
+
+                // remove lonely message
+                if (lonelyMessage) {
+                    lonelyMessage.remove();
+                }
+                
+                // create new friends list
+                let ul = document.createElement('ul');
+                ul.id = 'friendsList';
+                friendsSection.appendChild(ul);
+                friendsList = ul;
             }
 
+            // append friend to friends list
             let newFriendItem = document.createElement('li');
             newFriendItem.textContent = newFriendUsername;
             newFriendItem.id = "friend-" + newFriendUsername;
-
             friendsList.appendChild(newFriendItem);
-
-            // hide lonely message
-            let lonelyMessage = document.querySelector('p#lonelyMessage');
-            if (lonelyMessage){
-                lonelyMessage.remove()
-            }
 
             // success message
             console.log(response.data);
