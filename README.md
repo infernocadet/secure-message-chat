@@ -53,6 +53,12 @@ def show_user(username):
     return f"Hello, {username}!"
 ```
 
+```python
+@app.route("/user")
+def user_profile():
+    return render_template("user.jinja")
+```
+
 more on ```render_template``` later, but in this case, we are showing the ```index.jinja``` file to the user.
 
 ```python
