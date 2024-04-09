@@ -6,6 +6,8 @@ the socket event handlers are inside of socket_routes.py
 
 from flask import Flask, render_template, request, abort, url_for, jsonify
 from flask_socketio import SocketIO
+from flask_bcrypt import Bcrypt
+from flask_cors import CORS
 from sqlalchemy.orm import sessionmaker
 import db
 import secrets
@@ -19,6 +21,8 @@ from models import User, FriendRequest
 # log.setLevel(logging.ERROR)
 
 app = Flask(__name__)
+bcrypt = Bcrypt(app)
+CORS(app)
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
@@ -37,7 +41,17 @@ def index():
 
 # login page
 @app.route("/login")
-def login():    
+def login():
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    # get user from database
+    user = db.get_user(username)
+
+    # check if user exists and password matches
+    if user and bcrypt.check_password_hash(user.password, password):
+        return render_template("home.jinja")
+
     return render_template("login.jinja")
 
 # handles a post request when the user clicks the log in button
