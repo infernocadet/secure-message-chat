@@ -11,7 +11,7 @@ from flask_cors import CORS
 from sqlalchemy.orm import sessionmaker
 import db
 import secrets
-from db import engine, Session
+from db import engine, Session, verify_password
 from models import User, FriendRequest
 
 # import logging
@@ -49,7 +49,7 @@ def login():
     user = db.get_user(username)
 
     # check if user exists and password matches
-    if user and bcrypt.check_password_hash(user.password, password):
+    if user and verify_password(user.password, password):
         return render_template("home.jinja")
 
     return render_template("login.jinja")
