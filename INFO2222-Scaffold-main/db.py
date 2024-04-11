@@ -43,3 +43,7 @@ def verify_password(hashed_password: str, password: str):
         return True
     except:
         return False
+
+##########################################################
+# NOTE: May need to check if password needs to be rehashed
+##########################################################
