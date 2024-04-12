@@ -9,11 +9,41 @@ Sign up page, pretty much the same as login.
     <p>Username</p>
     <input id="username"/>
     <p>Password</p>
-    <input id="password" type="password"/>
-    <button onclick="signup()">Sign up</button>
+    <div style="position: relative;">
+        <input id="password" type="password" style="padding-right: 30px;"/>
+        <button id="togglePassword" style="position: relative; right: 0; top: 0;" onclick="togglePasswordVisibility()">👁️</button>
+    </div>
+    <p id="passwordHelp" style="color: red;"></p>
+    <button id="signupButton" onclick="signup()" disabled>Sign up</button>
 
     <script>
-         function isValidURL(string) {
+        document.getElementById("password").addEventListener('input', function(event) {
+            const password = event.target.value;
+            passwordValid = validatePassword(password);
+            document.getElementById('passwordHelp').textContent = passwordValid ? '' : 'Password must be at least 8 characters long, include uppercase, lowercase, numbers, and special characters.';
+            document.getElementById('signupButton').disabled = !passwordValid;
+        });
+
+        function validatePassword(password){
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumbers = /\d/.test(password);
+            const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+            const isLongEnough = password.length >= 8;
+            const notTooLong = password.length <= 20;
+
+            return hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChars && isLongEnough && notTooLong;
+        }
+
+        function togglePasswordVisibility(){
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.getElementById('togglePassword');
+            const isPasswordVisible = passwordInput.type === 'text';
+            passwordInput.type = isPasswordVisible ? 'password' : 'text';
+            toggleButton.textContent = isPasswordVisible ? '👁️' : '🚫';
+        }
+
+        function isValidURL(string) {
             if (string.length == 0) {
                 return false;
             }
@@ -25,6 +55,8 @@ Sign up page, pretty much the same as login.
 
         // this function is identical to login(), see login.jinja
         async function signup() {
+            let signupButton = document.getElementById('signupButton');
+            signupButton.disabled = true; // disables button, prevents multiple submissions
             let loginURL = "{{ url_for('signup_user') }}";
             let res = await axios.post(loginURL, {
                 username: $("#username").val(),
@@ -32,6 +64,7 @@ Sign up page, pretty much the same as login.
             });
             if (!isValidURL(res.data)) {
                 alert(res.data);
+                signupButton.disabled = false; // re-enable button is signup fails
                 return;
             }
             window.open(res.data, "_self")
