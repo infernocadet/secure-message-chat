@@ -65,15 +65,14 @@ def login_user():
     password = request.json.get("password")
 
     user =  db.get_user(username)
-
-    if user is not None and verify_password(user.password, password):
-        return url_for('home', username=username)
     
     if user is None:
         return "Error: User does not exist!"
 
-    if user.password != password:
+    if not verify_password(user.password, password):
         return "Error: Password does not match!"
+    
+    return url_for('home', username=request.json.get("username"))
 
 
 # handles a get request to the signup page
@@ -267,4 +266,4 @@ def reject_friend_request():
         
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("cert.pem", "key.pem"))
+    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("certs/cert.pem", "certs/key.pem"))

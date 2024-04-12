@@ -299,10 +299,7 @@
             let incomingRequestsList = document.getElementById('incomingRequestsList');
             if (incomingRequestsList && incomingRequestsList.children.length === 0){
                 // if none, display no incoming requests
-                let noIncomingRequestsMessage = document.createElement('p');
-                noIncomingRequestsMessage.id = "noIncomingRequestsMessage";
-                noIncomingRequestsMessage.textContent = "No incoming requests. (tumbleweed)";
-                document.getElementById('incomingFriendsContent').appendChild(noIncomingRequestsMessage);
+                noIncomingRequestsMessage.style.display = 'block';
             }
 
             // success message
@@ -331,10 +328,7 @@
             let incomingRequestsList = document.getElementById('incomingRequestsList');
             if (incomingRequestsList && incomingRequestsList.children.length === 0){
                 // if none, display no incoming requests
-                let noIncomingRequestsMessage = document.createElement('p');
-                noIncomingRequestsMessage.id = "noIncomingRequestsMessage";
-                noIncomingRequestsMessage.textContent = "No incoming requests. (tumbleweed)";
-                document.getElementById('incomingFriendsContent').appendChild(noIncomingRequestsMessage);
+                noIncomingRequestsMessage.style.display = 'block';
             }
 
             console.log(response.data);
