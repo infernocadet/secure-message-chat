@@ -5,7 +5,7 @@ the socket event handlers are inside of socket_routes.py
 '''
 
 from flask import Flask, render_template, request, abort, url_for, jsonify
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from sqlalchemy.orm import sessionmaker
@@ -13,6 +13,7 @@ import db
 import secrets
 from db import engine, Session, verify_password
 from models import User, FriendRequest
+from shared_state import user_sessions
 
 # import logging
 
@@ -51,7 +52,7 @@ def login():
     # check if user exists and password matches
     if user and verify_password(user.password, password):
         return render_template("home.jinja")
-
+    
     return render_template("login.jinja")
 
 # handles a post request when the user clicks the log in button
@@ -69,7 +70,6 @@ def login_user():
 
     if user.password != password:
         return "Error: Password does not match!"
-
     return url_for('home', username=request.json.get("username"))
 
 
@@ -152,6 +152,19 @@ def add_friend():
     friend_request = FriendRequest(sender=current_user, receiver=friend_user, status='pending')
     session.add(friend_request)
     session.commit()
+    
+    # emit request event to recipient user 
+    receiver_session_id = user_sessions.get(friend_username)
+
+    if receiver_session_id:
+        socketio.emit("update_friend_requests", {'new_friend': current_user_username, 'request_id': friend_request.id}, room=receiver_session_id)
+
+    # emit sent event to sender user
+    sender_session_id = user_sessions.get(current_user_username)
+
+    if current_user_username:
+        socketio.emit("update_sent_requests", {'receiver_username': friend_username, 'request_id': friend_request.id}, room=sender_session_id)
+
     session.close()
     return jsonify({"success": True}), 200
 
@@ -183,6 +196,22 @@ def accept_friend_request():
         
         session.delete(friend_request)
         session.commit()
+
+        # Emit update to both users
+        # find socket session ID for sender and receiver
+        sender_session_id = user_sessions.get(sender.username)
+        receiver_session_id = user_sessions.get(receiver.username)
+
+        # emit an update to sender
+        if sender_session_id:
+            socketio.emit("update_friends_list", {'new_friend': receiver.username}, room=sender_session_id)
+            socketio.emit("update_sent_requests_status", {'request_id': request_id, 'new_status': friend_request.status}, room=sender_session_id)
+        
+        # emit an update to receiver
+        if receiver_session_id:
+            socketio.emit("update_friends_list", {'new_friend': sender.username}, room=receiver_session_id)
+
+
         return jsonify({"success": "Friend request accepted", "newFriendUsername": sender.username}), 200
 
     except Exception as e:
@@ -216,6 +245,13 @@ def reject_friend_request():
         # session.delete(friend_request)
         friend_request.status = "rejected"
         session.commit()
+
+        # emit an update to sender
+        sender = friend_request.sender
+        sender_session_id = user_sessions.get(sender.username)
+        if sender_session_id:
+            socketio.emit("update_sent_requests_status", {'request_id': request_id, 'new_status': friend_request.status}, room=sender_session_id)
+
         return jsonify({"success": "Friend request rejected"}), 200
 
     except Exception as e:

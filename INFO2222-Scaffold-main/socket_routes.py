@@ -16,6 +16,8 @@ from models import Room
 
 import db
 
+from shared_state import user_sessions
+
 room = Room()
 
 # when the client connects to a socket
@@ -24,6 +26,12 @@ room = Room()
 def connect():
     username = request.cookies.get("username")
     room_id = request.cookies.get("room_id")
+
+    # mapping user to session id
+    if username:
+        user_sessions[username] = request.sid
+        print(f"{username} connected with SID {user_sessions.get(username)}")
+
     if room_id is None or username is None:
         return
     # socket automatically leaves a room on client disconnect
@@ -39,6 +47,12 @@ def disconnect():
     room_id = request.cookies.get("room_id")
     if room_id is None or username is None:
         return
+    
+    # removes user from session IDs to clean up
+    username_to_remove = [user for user, sid in user_sessions.items() if sid == request.sid]
+    for username in username_to_remove:
+        del user_sessions[username]
+
     emit("incoming", (f"{username} has disconnected", "red"), to=int(room_id))
 
 # send message event handler
