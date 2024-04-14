@@ -43,6 +43,22 @@
         margin-top: 0;
     }
 
+    #friendsList li {
+        cursor: pointer;
+        padding: 5px 10px;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    #friendsList li:hover {
+        background-color: #d3d3d3;
+        color: #333;
+    }
+
+    #friendsList li:active {
+        background-color: #808080;
+        color: #000;
+    }
+
 </style>
 
 <!--Navbar, you'll see the username here-->
@@ -59,10 +75,11 @@
         <div id="friendsContent">
             {% if friends %}
                 <ul id="friendsList">
-                {% set user_friends = friends %}
-                {% for item in user_friends %}
-                <li id=""friend-{{ item.username }}>{{ item.username }}</li>
-                {% endfor %}
+                    {% for item in friends %}
+                        <li id="friend-{{ item.username }}" onclick="click_join('{{ item.username }}')">
+                            {{ item.username }}
+                        </li>
+                    {% endfor %}
                 </ul>
             {% else %}
                 <p id="lonelyMessage">It's a bit lonely in here...</p>
@@ -285,6 +302,7 @@
         });
     });
 
+    // function to accept a friend request
     function acceptfriendRequest(requestID, element) {
         let acceptURL = "{{ url_for('accept_friend_request') }}"
         axios.post(acceptURL, {
@@ -314,6 +332,7 @@
         });
     };
 
+    // function to reject a friend request
     function rejectfriendRequest(requestID, element) {
         let rejectURL = "{{ url_for('reject_friend_request') }}"
         axios.post(rejectURL, {
@@ -343,6 +362,7 @@
         });
     };
     
+    // update friends list when a new friend is added
     socket.on("update_friends_list", function(data){
 
         // backend sends username of new friend
@@ -371,6 +391,7 @@
         
     });
 
+    // update friend requests list when a friend request is received
     socket.on("update_friend_requests", function(data){
 
         // backend sends username of new friend
@@ -409,6 +430,7 @@
         incomingRequestsList.appendChild(requestItem);
     })
 
+    // update friends list when a friend request is sent
     socket.on("update_sent_requests", function(data){
         // add new sent request
         let receiverUsername = data.receiver_username;
@@ -438,6 +460,7 @@
         sentRequestsList.appendChild(requestItem);
     });
 
+    // update friends list when a friend request is actioned
     socket.on("update_sent_requests_status", function(data) {
         let requestID = data.request_id;
         let newStatus = data.new_status;
@@ -464,6 +487,24 @@
             }
         }
     });
+
+    // function to join a room with a friend
+    function click_join(friendUsername) {
+        // use friend's username to join room
+        socket.emit("join", username, friendUsername, (res) => {
+            if (typeof res != "number") {
+                alert(res); // alert of error
+                return; // escape early
+            }
+
+            room_id = res; // set room id from response
+            Cookies.set("room_id", room_id); // set cookie
+
+            // show message input box and hide chat box
+            $("#chat_box").hide();
+            $("#input_box").show();
+        });
+    }
     
 </script>
 {% endblock %}
