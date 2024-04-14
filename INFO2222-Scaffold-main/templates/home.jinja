@@ -420,11 +420,26 @@
         // create list item for the new friend request
         let requestItem = document.createElement('li');
         requestItem.id = "friend-request-" + requestID
-        requestItem.innerHTML = `
-            ${newFriendUsername}
-            <button onclick="acceptfriendRequest('${requestID}', this)">Accept</button>
-            <button onclick="rejectfriendRequest('${requestID}', this)">Reject</button>
-        `;
+
+        // create text node for the username
+        let usernameText = document.createTextNode(newFriendUsername);
+        requestItem.appendChild(usernameText);
+
+        // create accept button
+        let acceptButton = document.createElement('button');
+        acceptButton.textContent = 'Accept';
+        acceptButton.onclick = function() {
+            acceptfriendRequest(requestID, this);
+        };
+        requestItem.appendChild(acceptButton);
+
+        // create reject button
+        let rejectButton = document.createElement('button');
+        rejectButton.textContent = 'Reject';
+        rejectButton.onclick = function() {
+            rejectfriendRequest(requestID, this);
+        };
+        requestItem.appendChild(rejectButton);
 
         // append new request to the list
         incomingRequestsList.appendChild(requestItem);
