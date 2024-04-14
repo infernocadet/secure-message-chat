@@ -67,10 +67,10 @@ def login_user():
     user =  db.get_user(username)
     
     if user is None:
-        return "Error: User does not exist!"
+        return jsonify({"error": f"User \"{username}\" does not exist."}), 404
 
     if not verify_password(user.password, password):
-        return "Error: Password does not match!"
+        return jsonify({"error": "Incorrect password."}), 409
     
     return url_for('home', username=request.json.get("username"))
 

@@ -11,6 +11,7 @@
     <p>Password</p>
     <input id="password"  type="password"/>
     <button onclick="login()">Login</button>
+    <p id="loginMessage" style="display: none;"></p>
 
     <script>
 
@@ -26,15 +27,9 @@
             return false;
         }
 
-        // login function to well login...
+        // async function to login the user when user clicks on login button
         async function login() {
-            // this fancy syntax is part of the Jinja syntax
-            // login_user is a Python function, this gets the URL that calls that Python function
-            // you know the one with the:
-            // app.route("/login/user", methods=["POST"])
-            // login_user()
-            // so... "{{ url_for('login_user')}}" 
-            // gives us -> "http://blabla/login/user"
+            // URL for the login_user function in the server
             let loginURL = "{{ url_for('login_user') }}";
 
             // axios post is a fancy way of posting a request to the server,
@@ -42,18 +37,25 @@
             let res = await axios.post(loginURL, {
                 username: $("#username").val(), // using jQuery to select HTML element with id=username. .val() gets the value of that input field
                 password: $("#password").val()
+            })
+            .then(function (response){
+                // if successful, we redirect the user to the URL returned by the server
+                // window.open(res.data, "_self")
+                window.location.href = response.data;
+            })
+            .catch(function (error) {
+                console.error('Error:', error)
+
+                // check error response from server
+                if (error.response && error.response.data) {
+                    // display error message
+                    document.getElementById('loginMessage').textContent = error.response.data.error;
+                } else {
+                    // display generic error message
+                    document.getElementById('loginMessage').textContent = "An error occurred";
+                }
+                 document.getElementById('loginMessage').style.display = "block";
             });
-
-            // if the server sends in an error message, alert() the error message
-            if (!isValidURL(res.data)) {
-                alert(res.data);
-                return;
-            }
-
-            // redirects to the URL (ie. res.data),
-            // we use _self here since we all hate that moment
-            // when the browser opens a new tab
-            window.open(res.data, "_self")
         }
     </script>
 {% endblock %}
