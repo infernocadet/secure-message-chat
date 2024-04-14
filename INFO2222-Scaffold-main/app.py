@@ -136,8 +136,12 @@ def home():
 
 @app.route("/add_friend", methods=['POST'])
 def add_friend():
+
+    # check if the request is json
     if not request.is_json:
         abort(404)    
+    
+    # get the current username and friend username from the request
     current_user_username = request.json.get("current_user")
     friend_username = request.json.get("friend_user")
 
@@ -147,10 +151,23 @@ def add_friend():
     current_user = session.query(User).filter_by(username=current_user_username).first()
     friend_user = session.query(User).filter_by(username=friend_username).first()
 
+    # check if the users exist
     if not current_user or not friend_user:
         session.close()
         return jsonify({"error": "user not found"}), 404
-    
+
+    # check if users are already friends
+    if friend_user in current_user.friends:
+        session.close()
+        return jsonify({"error": f"You are already friends with {friend_username}."}), 409
+
+    # check if the friend request already exists
+    existing_request = session.query(FriendRequest).filter_by(sender_id=current_user_username, receiver_id=friend_username).first()
+    if existing_request:
+        session.close()
+        return jsonify({"error": f"Friend request to {friend_username} has already been sent."}), 409
+
+    # if no existing request, create a new friend request
     friend_request = FriendRequest(sender=current_user, receiver=friend_user, status='pending')
     session.add(friend_request)
     session.commit()

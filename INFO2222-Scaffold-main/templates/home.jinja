@@ -266,8 +266,6 @@
     document.getElementById('friendrequestForm').addEventListener('submit', function(event) {
         event.preventDefault(); // prevent form from submitting the traditional way
 
-        console.log("form event triggered");
-
         let friendUsername = document.getElementById('friendUsername').value;
         let currentUsername = "{{ username }}";
 
@@ -291,13 +289,21 @@
             friend_user: friendUsername
         })
         .then(function (response) {
+
             console.log(response.data);
             document.getElementById('friendRequestMessage').textContent = "Friend request sent!";
             document.getElementById('friendRequestMessage').style.display = 'block';
         })
         .catch(function (error) {
             console.error('Error:', error)
-            document.getElementById('friendRequestMessage').textContent = "Failed to send friend request :(";
+
+            // check if error response contains data
+            if (error.response && error.response.data){
+                // display error message
+                document.getElementById('friendRequestMessage').textContent = error.response.data.error;
+            } else {
+                document.getElementById('friendRequestMessage').textContent = "An error occurred while sending the friend request.";
+            }
             document.getElementById('friendRequestMessage').style.display = 'block';
         });
     });
@@ -310,20 +316,31 @@
         })
         .then(function (response) {
 
-            // on success, remove the friend request from the UI
-            element.closest('li').remove();
+            // check if response contains an error
+            if (response.data.error){
 
-            // check if any more friend requests
-            let incomingRequestsList = document.getElementById('incomingRequestsList');
-            if (incomingRequestsList && incomingRequestsList.children.length === 0){
-                // if none, display no incoming requests
-                noIncomingRequestsMessage.style.display = 'block';
+                // display error
+                document.getElementById('requestResponse').textContent = response.data.error;
+                document.getElementById('requestResponse').style.display = 'block';
+
+            } else {
+
+                // on success, remove request from list
+                element.closest('li').remove();
+
+                // check if any more friend requests
+                let incomingRequestsList = document.getElementById('incomingRequestsList');
+                if (incomingRequestsList && incomingRequestsList.children.length === 0){
+                    // if none, display no incoming requests
+                    noIncomingRequestsMessage.style.display = 'block';
+                }
+
+                // success message
+                console.log(response.data);
+                document.getElementById('requestResponse').textContent = "You accepted the request!";
+                document.getElementById('requestResponse').style.display = 'block';
             }
-
-            // success message
-            console.log(response.data);
-            document.getElementById('requestResponse').textContent = "You accepted the request!";
-            document.getElementById('requestResponse').style.display = 'block';
+            
         })
         .catch(function (error){
             console.error('Error:', error)
