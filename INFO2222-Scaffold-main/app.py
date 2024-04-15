@@ -43,15 +43,15 @@ def index():
 # login page
 @app.route("/login")
 def login():
-    username = request.form.get("username")
-    password = request.form.get("password")
+    # username = request.form.get("username")
+    # password = request.form.get("password")
 
-    # get user from database
-    user = db.get_user(username)
+    # # get user from database
+    # user = db.get_user(username)
 
-    # check if user exists and password matches
-    if user and verify_password(user.password, password):
-        return render_template("home.jinja")
+    # # check if user exists and password matches
+    # if user and verify_password(user.password, password):
+    #     return render_template("home.jinja")
     
     return render_template("login.jinja")
 
