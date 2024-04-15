@@ -50,15 +50,6 @@ def index():
 # login page
 @app.route("/login")
 def login():
-    username = sanitize_input(request.json.get("username"))
-    password = sanitize_input(request.json.get("password"))
-
-    # # get user from database
-    # user = db.get_user(username)
-
-    # # check if user exists and password matches
-    # if user and verify_password(user.password, password):
-    #     return render_template("home.jinja")
     
     return render_template("login.jinja")
 
@@ -87,10 +78,11 @@ def login_user():
 def signup():
 
     # Generate a unique nonce for each request
-    nonce = secrets.token_hex(16)
+    # nonce = secrets.token_hex(16)
 
+    return render_template("signup.jinja")
     # passing nonce into template
-    return render_template("signup.jinja", nonce=nonce)
+    # return render_template("signup.jinja", nonce=nonce)
 
 # handles a post request when the user clicks the signup button
 @app.route("/signup/user", methods=["POST"])
@@ -300,12 +292,12 @@ def reject_friend_request():
         session.close()
     
 
-@app.after_request
-def set_csp(response):
-    nonce = response.data.decode("utf-8").split("nonce-")[1].split('"')[0]
-    csp_policy = f"default-src 'self'; script-src 'self' 'nonce-{nonce}' https://cdnjs.cloudflare.com/ajax/libs/axios/; style-src 'self' 'unsafe-inline';"
-    response.headers['Content-Security-Policy'] = csp_policy
-    return response
+# @app.after_request
+# def set_csp(response):
+#     nonce = response.data.decode("utf-8").split("nonce-")[1].split('"')[0]
+#     csp_policy = f"default-src 'self'; script-src 'self' 'nonce-{nonce}' https://cdnjs.cloudflare.com/ajax/libs/axios/; style-src 'self' 'unsafe-inline';"
+#     response.headers['Content-Security-Policy'] = csp_policy
+#     return response
     
         
 
