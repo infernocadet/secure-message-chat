@@ -14,6 +14,7 @@ import secrets
 from db import engine, Session, verify_password
 from models import User, FriendRequest
 from shared_state import user_sessions
+from bleach import clean # for sanitizing user input
 
 # import logging
 
@@ -35,6 +36,12 @@ import socket_routes
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
 
+# sanitize user input
+# you will see that i have used this function in the login and signup routes, and addfriend routes to sanitise any user data that is sent to the server
+# jinja automatically escapes html attributes that return back to the client using the double curly braces {{ }} so we don't need to worry about that
+def sanitize_input(input):
+    return clean(input, strip=True, tags=[], attributes={}, styles=[])
+
 # index page
 @app.route("/")
 def index():
@@ -43,8 +50,8 @@ def index():
 # login page
 @app.route("/login")
 def login():
-    username = request.form.get("username")
-    password = request.form.get("password")
+    username = sanitize_input(request.json.get("username"))
+    password = sanitize_input(request.json.get("password"))
 
     # get user from database
     user = db.get_user(username)
@@ -61,8 +68,8 @@ def login_user():
     if not request.is_json:
         abort(404)
 
-    username = request.json.get("username")
-    password = request.json.get("password")
+    username = sanitize_input(request.json.get("username"))
+    password = sanitize_input(request.json.get("password"))
 
     user =  db.get_user(username)
     
@@ -78,30 +85,42 @@ def login_user():
 # handles a get request to the signup page
 @app.route("/signup")
 def signup():
-    return render_template("signup.jinja")
+
+    # Generate a unique nonce for each request
+    nonce = secrets.token_hex(16)
+
+    # passing nonce into template
+    return render_template("signup.jinja", nonce=nonce)
 
 # handles a post request when the user clicks the signup button
 @app.route("/signup/user", methods=["POST"])
 def signup_user():
+    
     if not request.is_json:
         abort(404)
-    username = request.json.get("username")
-    password = request.json.get("password")
+
+    username = sanitize_input(request.json.get("username"))
+    password = sanitize_input(request.json.get("password"))
 
     if db.get_user(username) is None:
         db.insert_user(username, password)
         return url_for('home', username=username)
     return "Error: User already exists!"
 
+
 # handler when a "404" error happens
 @app.errorhandler(404)
 def page_not_found(_):
     return render_template('404.jinja'), 404
 
+
 # home page, where the messaging app is
 @app.route("/home")
 def home():
-    current_user_username = request.args.get("username")
+
+    # get the current user's username from the request (cleaned)
+    current_user_username = sanitize_input(request.args.get("username"))
+
     if current_user_username is None:
         abort(404)
 
@@ -142,8 +161,8 @@ def add_friend():
         abort(404)    
     
     # get the current username and friend username from the request
-    current_user_username = request.json.get("current_user")
-    friend_username = request.json.get("friend_user")
+    current_user_username = sanitize_input(request.json.get("current_user"))
+    friend_username = sanitize_input(request.json.get("friend_user"))
 
     session = Session()
 
@@ -279,7 +298,15 @@ def reject_friend_request():
 
     finally:
         session.close()
+    
 
+@app.after_request
+def set_csp(response):
+    nonce = response.data.decode("utf-8").split("nonce-")[1].split('"')[0]
+    csp_policy = f"default-src 'self'; script-src 'self' 'nonce-{nonce}' https://cdnjs.cloudflare.com/ajax/libs/axios/; style-src 'self' 'unsafe-inline';"
+    response.headers['Content-Security-Policy'] = csp_policy
+    return response
+    
         
 
 if __name__ == '__main__':

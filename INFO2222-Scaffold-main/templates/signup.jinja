@@ -16,7 +16,7 @@ Sign up page, pretty much the same as login.
     <p id="passwordHelp" style="color: red;"></p>
     <button id="signupButton" onclick="signup()" disabled>Sign up</button>
 
-    <script>
+    <script nonce="{{ nonce }}">
         document.getElementById("password").addEventListener('input', function(event) {
             const password = event.target.value;
             passwordValid = validatePassword(password);
