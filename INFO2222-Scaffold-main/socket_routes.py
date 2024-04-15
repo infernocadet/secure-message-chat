@@ -6,6 +6,7 @@ file containing all the routes related to socket.io
 
 from flask_socketio import join_room, emit, leave_room
 from flask import request
+from bleach import clean 
 
 try:
     from __main__ import socketio
@@ -58,7 +59,8 @@ def disconnect():
 # send message event handler
 @socketio.on("send")
 def send(username, message, room_id):
-    emit("incoming", (f"{username}: {message}"), to=room_id)
+    sanitised_message = clean(message)
+    emit("incoming", (f"{username}: {sanitised_message}"), to=room_id) # to test, <script>alert('XSS Test');</script>
     
 # join room event handler
 # sent when the user joins a room
