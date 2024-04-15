@@ -53,12 +53,12 @@ def login():
     username = sanitize_input(request.json.get("username"))
     password = sanitize_input(request.json.get("password"))
 
-    # get user from database
-    user = db.get_user(username)
+    # # get user from database
+    # user = db.get_user(username)
 
-    # check if user exists and password matches
-    if user and verify_password(user.password, password):
-        return render_template("home.jinja")
+    # # check if user exists and password matches
+    # if user and verify_password(user.password, password):
+    #     return render_template("home.jinja")
     
     return render_template("login.jinja")
 
@@ -310,4 +310,4 @@ def set_csp(response):
         
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("cert.pem", "key.pem"))
+    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("certs/cert.pem", "certs/key.pem"))
