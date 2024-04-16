@@ -4,10 +4,13 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-from flask import Flask, render_template, request, abort, url_for, jsonify
+from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
+from flask import session as flask_session
 from flask_socketio import SocketIO, emit
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from datetime import timedelta
+from functools import wraps
 from sqlalchemy.orm import sessionmaker
 import db
 import secrets
@@ -28,10 +31,14 @@ CORS(app)
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
+app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 socketio = SocketIO(app)
 
 # don't remove this!!
 import socket_routes
+
 
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
@@ -41,6 +48,16 @@ Session = sessionmaker(bind=engine)
 # jinja automatically escapes html attributes that return back to the client using the double curly braces {{ }} so we don't need to worry about that
 def sanitize_input(input):
     return clean(input, strip=True, tags=[], attributes={}, styles=[])
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "username" not in flask_session: 
+            return redirect(url_for('login')) 
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 # index page
 @app.route("/")
@@ -69,7 +86,11 @@ def login_user():
 
     if not verify_password(user.password, password):
         return jsonify({"error": "Incorrect password."}), 409
-    
+
+    flask_session.clear()
+    flask_session['username'] = username 
+
+    # user was successful in logging in.
     return url_for('home', username=request.json.get("username"))
 
 
@@ -77,12 +98,8 @@ def login_user():
 @app.route("/signup")
 def signup():
 
-    # Generate a unique nonce for each request
-    # nonce = secrets.token_hex(16)
-
     return render_template("signup.jinja")
-    # passing nonce into template
-    # return render_template("signup.jinja", nonce=nonce)
+
 
 # handles a post request when the user clicks the signup button
 @app.route("/signup/user", methods=["POST"])
@@ -96,6 +113,8 @@ def signup_user():
 
     if db.get_user(username) is None:
         db.insert_user(username, password)
+        flask_session.clear()
+        flask_session['username'] = db.get_user(username).username
         return url_for('home', username=username)
     return "Error: User already exists!"
 
@@ -108,6 +127,7 @@ def page_not_found(_):
 
 # home page, where the messaging app is
 @app.route("/home")
+@login_required
 def home():
 
     # get the current user's username from the request (cleaned)
@@ -115,16 +135,24 @@ def home():
 
     if current_user_username is None:
         abort(404)
-
-    session = Session()
+    
+    # check if the current user is the same as the user in the session
     try:
-        current_user = session.query(User).filter_by(username=current_user_username).first()
+        if current_user_username != flask_session.get("username"):
+            return redirect(url_for('login'))
+    except Exception as e:
+        print(e)
+        return redirect(url_for('login'))
+
+    db_session = Session()
+    try:
+        current_user = db_session.query(User).filter_by(username=current_user_username).first()
         if current_user is None:
             abort(404)
         
         friends = current_user.friends[:]
 
-        incoming_friends = session.query(FriendRequest).filter(FriendRequest.receiver_id == current_user_username, FriendRequest.status == "pending").all()
+        incoming_friends = db_session.query(FriendRequest).filter(FriendRequest.receiver_id == current_user_username, FriendRequest.status == "pending").all()
         incoming_requests = [
             {
                 'id': req.id,
@@ -132,7 +160,7 @@ def home():
             } for req in incoming_friends
         ]
 
-        sent_requests = session.query(FriendRequest).filter(FriendRequest.sender_id == current_user_username, FriendRequest.status == "pending").all()
+        sent_requests = db_session.query(FriendRequest).filter(FriendRequest.sender_id == current_user_username, FriendRequest.status == "pending").all()
         sent_requests_list = [
             {
                 'id': sent.id,
@@ -141,11 +169,12 @@ def home():
         ]
     
     finally:
-        session.close()
+        db_session.close()
 
     return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests, sent_requests=sent_requests_list)
 
 @app.route("/add_friend", methods=['POST'])
+@login_required
 def add_friend():
 
     # check if the request is json
@@ -156,32 +185,39 @@ def add_friend():
     current_user_username = sanitize_input(request.json.get("current_user"))
     friend_username = sanitize_input(request.json.get("friend_user"))
 
-    session = Session()
+    try:
+        if current_user_username != flask_session.get("username"):
+            return redirect(url_for('login'))
+    except Exception as e:
+        print(e)
+        return redirect(url_for('login'))
+
+    db_session = Session()
 
     # get the User object for current user and friend user from database
-    current_user = session.query(User).filter_by(username=current_user_username).first()
-    friend_user = session.query(User).filter_by(username=friend_username).first()
+    current_user = db_session.query(User).filter_by(username=current_user_username).first()
+    friend_user = db_session.query(User).filter_by(username=friend_username).first()
 
     # check if the users exist
     if not current_user or not friend_user:
-        session.close()
+        db_session.close()
         return jsonify({"error": "user not found"}), 404
 
     # check if users are already friends
     if friend_user in current_user.friends:
-        session.close()
+        db_session.close()
         return jsonify({"error": f"You are already friends with {friend_username}."}), 409
 
     # check if the friend request already exists
-    existing_request = session.query(FriendRequest).filter_by(sender_id=current_user_username, receiver_id=friend_username).first()
+    existing_request = db_session.query(FriendRequest).filter_by(sender_id=current_user_username, receiver_id=friend_username).first()
     if existing_request:
-        session.close()
+        db_session.close()
         return jsonify({"error": f"Friend request to {friend_username} has already been sent."}), 409
 
     # if no existing request, create a new friend request
     friend_request = FriendRequest(sender=current_user, receiver=friend_user, status='pending')
-    session.add(friend_request)
-    session.commit()
+    db_session.add(friend_request)
+    db_session.commit()
     
     # emit request event to recipient user 
     receiver_session_id = user_sessions.get(friend_username)
@@ -195,27 +231,33 @@ def add_friend():
     if current_user_username:
         socketio.emit("update_sent_requests", {'receiver_username': friend_username, 'request_id': friend_request.id}, room=sender_session_id)
 
-    session.close()
+    db_session.close()
     return jsonify({"success": True}), 200
 
 
 @app.route("/accept_friend_request", methods=['POST'])
+@login_required
 def accept_friend_request():
 
     if not request.is_json:
         abort(404)
     request_id = request.json.get("request_id")
+
+    # get the current username from the session
+    session_username = flask_session.get("username")
     
-    session = Session()
+    db_session = Session()
     try:
-        friend_request = session.query(FriendRequest).filter_by(id=request_id).first()
+        friend_request = db_session.query(FriendRequest).filter_by(id=request_id).first()
 
         if friend_request is None:
-            session.close()
+            db_session.close()
             return jsonify({"error": "Friend request not found"}), 404
-
-        # TODO: Check if the current user (from session or token) is the receiver of the friend request
-        # This makes sure that actions are authenticated
+        
+        # check if the user is the receiver of the friend request
+        if friend_request.receiver_id != session_username:
+            db_session.close()
+            return jsonify({"error": "You are not the receiver of this friend request"}), 403
 
         friend_request.status = "accepted"
         sender = friend_request.sender
@@ -224,8 +266,8 @@ def accept_friend_request():
         sender.friends.append(receiver)
         receiver.friends.append(sender)
         
-        session.delete(friend_request)
-        session.commit()
+        db_session.delete(friend_request)
+        db_session.commit()
 
         # Emit update to both users
         # find socket session ID for sender and receiver
@@ -245,36 +287,40 @@ def accept_friend_request():
         return jsonify({"success": "Friend request accepted", "newFriendUsername": sender.username}), 200
 
     except Exception as e:
-        session.rollback()
+        db_session.rollback()
         return jsonify({"error": str(e)}), 500
 
     finally:
-        session.close()
+        db_session.close()
 
 
 
 @app.route("/reject_friend_request", methods=['POST'])
+@login_required
 def reject_friend_request():
 
     if not request.is_json:
         abort(404)
     request_id = request.json.get("request_id")
+
+    # get the current username from the session
+    session_username = flask_session.get("username")
     
-    session = Session()
+    db_session = Session()
     try:
-        friend_request = session.query(FriendRequest).filter_by(id=request_id).first()
+        friend_request = db_session.query(FriendRequest).filter_by(id=request_id).first()
 
         if friend_request is None:
             return jsonify({"error": "Friend request not found"}), 404
         
-        # TODO: Check if the current user (from session or token) is the receiver of the friend request
-        # This makes sure that actions are authenticated
-        # Then we can delete the friend request too if we want. but if we see if a previous request was rejected
-        # then maybe we can stop further invitations
+        # check if the user is the receiver of the friend request
+        if friend_request.receiver_id != session_username:
+            db_session.close()
+            return jsonify({"error": "You are not the receiver of this friend request"}), 403
 
         # session.delete(friend_request)
         friend_request.status = "rejected"
-        session.commit()
+        db_session.commit()
 
         # emit an update to sender
         sender = friend_request.sender
@@ -285,20 +331,25 @@ def reject_friend_request():
         return jsonify({"success": "Friend request rejected"}), 200
 
     except Exception as e:
-        session.rollback()
+        db_session.rollback()
         return jsonify({"error": str(e)}), 500
 
     finally:
-        session.close()
-    
+        db_session.close()
 
-# @app.after_request
-# def set_csp(response):
-#     nonce = response.data.decode("utf-8").split("nonce-")[1].split('"')[0]
-#     csp_policy = f"default-src 'self'; script-src 'self' 'nonce-{nonce}' https://cdnjs.cloudflare.com/ajax/libs/axios/; style-src 'self' 'unsafe-inline';"
-#     response.headers['Content-Security-Policy'] = csp_policy
-#     return response
-    
+# route to logout
+@app.route("/logout")
+def logout():
+    flask_session.clear()
+    return redirect(url_for('index'))    
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
         
 
 if __name__ == '__main__':

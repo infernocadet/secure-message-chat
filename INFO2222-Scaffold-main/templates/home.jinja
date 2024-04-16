@@ -8,7 +8,27 @@
    <style>
     nav {
         border-bottom: 1px solid black;
-        overflow: auto
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #FFF;
+        z-index: 2;
+    }
+
+    nav ul {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+    }
+
+    nav li {
+        padding: 10px 20px;
+    }
+
+    #main-content {
+        margin-top: 20px;
+        padding: 5px;
     }
 
     #message_box {
@@ -17,6 +37,7 @@
         width: 800px; 
         overflow: auto;
         padding: 2px;
+        margin-top; 20px;
     }
 
     .text  {
@@ -27,11 +48,11 @@
     #sidebar {
         position: fixed;
         right: 0;
-        top: 0;
+        top: 0px;
         width: 250px;
         height: 100vh;
         overflow-y: auto;
-        background-color: #EEEEEE
+        background-color: #dee2e6
     }
 
     aside {
@@ -41,6 +62,10 @@
 
     aside h2 {
         margin-top: 0;
+    }
+
+    #friendsSection {
+        margin-top: 60px;
     }
 
     #friendsList li {
@@ -62,10 +87,17 @@
 </style>
 
 <!--Navbar, you'll see the username here-->
-<nav style="border-bottom: 1px solid black;">
-    <ol style="float: right">
+{# <nav style="border-bottom: 1px solid black;">
+    <ol style="float: left">
         <li style="display:inline-block">Username:  {{ username }} </li>
     </ol>
+</nav> #}
+
+<nav>
+    <ul>
+    <li style="display:inline-block; float: left">Logged in as: {{ username }}</li>
+    <li style="display:inline-block; float: right"><button onclick="logout()">Logout</button></li>
+    </ul>
 </nav>
 
 <div id="sidebar">
@@ -127,41 +159,43 @@
 
 </div>
 
+<div id="main-content">
+    <h1>Messaging App </h1>
 
-<h1>Messaging App </h1>
+    <main>
+        <!-- The messages are displayed here -->
+        <section id="message_box"></section>
 
-<main>
-    <!-- The messages are displayed here -->
-    <section id="message_box"></section>
+        <!-- These part ideally should be a form element, 
+        but I wrote this code a year ago and I don't want to break anything...-->
+        <section id="chat_box">
+            <p class="text">Chat with: </p>
+            <input id="receiver" placeholder="username">
+            <!-- MDN says its bad practice to use the onclick attribute,
+            but we're using it anyways coz its easy :)-->
+            <button onclick="join_room()">Chat</button>
+        </section>
 
-    <!-- These part ideally should be a form element, 
-    but I wrote this code a year ago and I don't want to break anything...-->
-    <section id="chat_box">
-        <p class="text">Chat with: </p>
-        <input id="receiver" placeholder="username">
-        <!-- MDN says its bad practice to use the onclick attribute,
-        but we're using it anyways coz its easy :)-->
-        <button onclick="join_room()">Chat</button>
-    </section>
+        <!-- The (message) input box is set to display: none initially, 
+        this means the input box is "invisible" initially-->
+        <section id="input_box" style="display: none" >
+            <p class="text">Message: </p>
+            <input id="message" placeholder="message">
+            <button onclick="send()">Send</button>
+            <button onclick="leave()">Leave Room</button>
+        </section>
+    </main>
 
-    <!-- The (message) input box is set to display: none initially, 
-    this means the input box is "invisible" initially-->
-    <section id="input_box" style="display: none" >
-        <p class="text">Message: </p>
-        <input id="message" placeholder="message">
-        <button onclick="send()">Send</button>
-        <button onclick="leave()">Leave Room</button>
-    </section>
-</main>
+    <!-- Friends form to add friends -->
+    <h1>Add friend</h1>
+    <form id="friendrequestForm">
+        <label for="friendUsername">Friend's Username:</label>
+        <input id="friendUsername" name ="friendUsername" type="text" required />
+        <button type="submit">Add Friend</button>
+    </form>
+    <p id="friendRequestMessage" style="display:none;"></p>
+</div>
 
-<!-- Friends form to add friends -->
-<h1>Add friend</h1>
-<form id="friendrequestForm">
-    <label for="friendUsername">Friend's Username:</label>
-    <input id="friendUsername" name ="friendUsername" type="text" required />
-    <button type="submit">Add Friend</button>
-</form>
-<p id="friendRequestMessage" style="display:none;"></p>
 
 <script src="/static/js/libs/socket.io.min.js"></script>
 <script>
@@ -536,6 +570,14 @@
             $("#chat_box").hide();
             $("#input_box").show();
         });
+    }
+
+    function logout(){
+        window.location.href = "{{ url_for('logout') }}"
+        history.pushState(null, null, '/');
+        window.addEventListener('popstate', function(event) {
+        history.pushState(null, null, '/');
+    });
     }
     
 </script>
