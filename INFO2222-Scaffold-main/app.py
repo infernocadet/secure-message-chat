@@ -4,7 +4,7 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-from flask import Flask, render_template, request, abort, url_for, jsonify, redirect, flash
+from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
 from flask import session as flask_session
 from flask_socketio import SocketIO, emit
 from flask_bcrypt import Bcrypt
@@ -53,10 +53,11 @@ def sanitize_input(input):
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "username" not in flask_session:
-            return redirect(url_for('login'))
+        if "username" not in flask_session: 
+            return redirect(url_for('login')) 
         return f(*args, **kwargs)
     return decorated_function
+
 
 # index page
 @app.route("/")
@@ -87,8 +88,7 @@ def login_user():
         return jsonify({"error": "Incorrect password."}), 409
 
     flask_session.clear()
-    flask_session['username'] = username
-    print(flask_session)
+    flask_session['username'] = username 
 
     # user was successful in logging in.
     return url_for('home', username=request.json.get("username"))
@@ -296,6 +296,7 @@ def accept_friend_request():
 
 
 @app.route("/reject_friend_request", methods=['POST'])
+@login_required
 def reject_friend_request():
 
     if not request.is_json:
