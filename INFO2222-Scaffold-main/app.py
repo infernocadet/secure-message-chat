@@ -47,7 +47,7 @@ Session = sessionmaker(bind=engine)
 # you will see that i have used this function in the login and signup routes, and addfriend routes to sanitise any user data that is sent to the server
 # jinja automatically escapes html attributes that return back to the client using the double curly braces {{ }} so we don't need to worry about that
 def sanitize_input(input):
-    return clean(input, strip=True, tags=[], attributes={}, styles=[])
+    return clean(input, strip=True, tags=[], attributes={})
 
 
 def login_required(f):
