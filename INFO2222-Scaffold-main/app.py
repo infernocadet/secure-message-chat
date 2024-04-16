@@ -4,11 +4,13 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
+from flask import Flask, render_template, request, abort, url_for, jsonify, redirect, flash
 from flask import session as flask_session
 from flask_socketio import SocketIO, emit
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from datetime import timedelta
+from functools import wraps
 from sqlalchemy.orm import sessionmaker
 import db
 import secrets
@@ -31,10 +33,12 @@ CORS(app)
 app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 socketio = SocketIO(app)
 
 # don't remove this!!
 import socket_routes
+
 
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
@@ -44,6 +48,15 @@ Session = sessionmaker(bind=engine)
 # jinja automatically escapes html attributes that return back to the client using the double curly braces {{ }} so we don't need to worry about that
 def sanitize_input(input):
     return clean(input, strip=True, tags=[], attributes={}, styles=[])
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "username" not in flask_session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # index page
 @app.route("/")
@@ -73,7 +86,8 @@ def login_user():
     if not verify_password(user.password, password):
         return jsonify({"error": "Incorrect password."}), 409
 
-    flask_session['user'] = user.username
+    flask_session.clear()
+    flask_session['username'] = username
     print(flask_session)
 
     # user was successful in logging in.
@@ -99,7 +113,8 @@ def signup_user():
 
     if db.get_user(username) is None:
         db.insert_user(username, password)
-        flask_session['user'] = db.get_user(username).username
+        flask_session.clear()
+        flask_session['username'] = db.get_user(username).username
         return url_for('home', username=username)
     return "Error: User already exists!"
 
@@ -112,6 +127,7 @@ def page_not_found(_):
 
 # home page, where the messaging app is
 @app.route("/home")
+@login_required
 def home():
 
     # get the current user's username from the request (cleaned)
@@ -120,7 +136,12 @@ def home():
     if current_user_username is None:
         abort(404)
     
-    if current_user_username not in flask_session.values():
+    # check if the current user is the same as the user in the session
+    try:
+        if current_user_username != flask_session.get("username"):
+            return redirect(url_for('login'))
+    except Exception as e:
+        print(e)
         return redirect(url_for('login'))
 
     db_session = Session()
@@ -153,6 +174,7 @@ def home():
     return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests, sent_requests=sent_requests_list)
 
 @app.route("/add_friend", methods=['POST'])
+@login_required
 def add_friend():
 
     # check if the request is json
@@ -162,6 +184,13 @@ def add_friend():
     # get the current username and friend username from the request
     current_user_username = sanitize_input(request.json.get("current_user"))
     friend_username = sanitize_input(request.json.get("friend_user"))
+
+    try:
+        if current_user_username != flask_session.get("username"):
+            return redirect(url_for('login'))
+    except Exception as e:
+        print(e)
+        return redirect(url_for('login'))
 
     db_session = Session()
 
@@ -207,11 +236,15 @@ def add_friend():
 
 
 @app.route("/accept_friend_request", methods=['POST'])
+@login_required
 def accept_friend_request():
 
     if not request.is_json:
         abort(404)
     request_id = request.json.get("request_id")
+
+    # get the current username from the session
+    session_username = flask_session.get("username")
     
     db_session = Session()
     try:
@@ -220,9 +253,11 @@ def accept_friend_request():
         if friend_request is None:
             db_session.close()
             return jsonify({"error": "Friend request not found"}), 404
-
-        # TODO: Check if the current user (from session or token) is the receiver of the friend request
-        # This makes sure that actions are authenticated
+        
+        # check if the user is the receiver of the friend request
+        if friend_request.receiver_id != session_username:
+            db_session.close()
+            return jsonify({"error": "You are not the receiver of this friend request"}), 403
 
         friend_request.status = "accepted"
         sender = friend_request.sender
@@ -266,6 +301,9 @@ def reject_friend_request():
     if not request.is_json:
         abort(404)
     request_id = request.json.get("request_id")
+
+    # get the current username from the session
+    session_username = flask_session.get("username")
     
     db_session = Session()
     try:
@@ -274,10 +312,10 @@ def reject_friend_request():
         if friend_request is None:
             return jsonify({"error": "Friend request not found"}), 404
         
-        # TODO: Check if the current user (from session or token) is the receiver of the friend request
-        # This makes sure that actions are authenticated
-        # Then we can delete the friend request too if we want. but if we see if a previous request was rejected
-        # then maybe we can stop further invitations
+        # check if the user is the receiver of the friend request
+        if friend_request.receiver_id != session_username:
+            db_session.close()
+            return jsonify({"error": "You are not the receiver of this friend request"}), 403
 
         # session.delete(friend_request)
         friend_request.status = "rejected"
@@ -297,15 +335,20 @@ def reject_friend_request():
 
     finally:
         db_session.close()
-    
 
-# @app.after_request
-# def set_csp(response):
-#     nonce = response.data.decode("utf-8").split("nonce-")[1].split('"')[0]
-#     csp_policy = f"default-src 'self'; script-src 'self' 'nonce-{nonce}' https://cdnjs.cloudflare.com/ajax/libs/axios/; style-src 'self' 'unsafe-inline';"
-#     response.headers['Content-Security-Policy'] = csp_policy
-#     return response
-    
+# route to logout
+@app.route("/logout")
+def logout():
+    flask_session.clear()
+    return redirect(url_for('index'))    
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
         
 
 if __name__ == '__main__':
