@@ -110,9 +110,10 @@ def signup_user():
 
     username = sanitize_input(request.json.get("username"))
     password = sanitize_input(request.json.get("password"))
+    salt = request.json.get("salt")
 
     if db.get_user(username) is None:
-        db.insert_user(username, password)
+        db.insert_user(username, password, salt)
         flask_session.clear()
         flask_session['username'] = db.get_user(username).username
         return url_for('home', username=username)
