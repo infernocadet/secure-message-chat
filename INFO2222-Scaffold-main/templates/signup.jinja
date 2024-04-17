@@ -58,17 +58,6 @@ Sign up page, pretty much the same as login.
             return false;
         }
 
-        // generate salt for password hashing since js-sha256 doesn't have salting implemented
-        function genSalt(length) {
-            var saltString = "";
-            var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            var charactersLength = characters.length;
-            for (var i = 0; i < length; i++) {
-                saltString += characters.charAt(Math.floor(Math.random() * charactersLength));
-            }
-            return saltString;
-        }
-
         // this function is identical to login(), see login.jinja
         async function signup() {
             let signupButton = document.getElementById('signupButton');
@@ -76,13 +65,11 @@ Sign up page, pretty much the same as login.
             let loginURL = "{{ url_for('signup_user') }}";
             let username = $("#username").val();
             let password = $("#password").val();
-            let salt = genSalt(10); // Used to generate salt for password hashing
             let passwordHashed = sha256(salt + password); // Hashes password with salt
 
             let res = await axios.post(loginURL, {
                 username: username,
-                password: passwordHashed,
-                salt: salt
+                password: passwordHashed
             });
             if (!isValidURL(res.data)) {
                 alert(res.data);
