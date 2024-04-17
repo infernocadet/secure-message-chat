@@ -362,8 +362,11 @@ def get_friends():
 # route to logout
 @app.route("/logout")
 def logout():
-    flask_session.clear()
-    return redirect(url_for('index'))    
+    flask_session.pop('username', None)  # securely remove user details
+    flask_session.clear()  # clear all session data
+    response = redirect(url_for('index'))
+    response.headers['Clear-Site-Data'] = '"cookies"'  # Clear cookies in supporting browsers
+    return response    
 
 
 @app.after_request
