@@ -83,13 +83,16 @@ def login_user():
     if user is None:
         return jsonify({"error": f"User \"{username}\" does not exist."}), 404
 
-    if user and bcrypt.check_password_hash(user.password, client_hashed_password):
-        flask_session.clear()
-        flask_session['username'] = username
-        return url_for('home', username=username)
+    try:
+        if user and bcrypt.check_password_hash(user.password, client_hashed_password):
+            flask_session.clear()
+            flask_session['username'] = username
+            return url_for('home', username=username)
 
-    else:
-        return jsonify({"error": "Incorrect password"}), 401
+        else:
+            return jsonify({"error": "Incorrect password"}), 401
+    except:
+        return jsonify({"error": "An error occurred when trying to log in."}), 500
 
     # flask_session.clear()
     # flask_session['username'] = username 
