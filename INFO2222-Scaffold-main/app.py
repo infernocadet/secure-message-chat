@@ -6,6 +6,7 @@ the socket event handlers are inside of socket_routes.py
 
 from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
 from flask import session as flask_session
+from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 from datetime import timedelta
@@ -25,6 +26,7 @@ from bleach import clean # for sanitizing user input
 # log.setLevel(logging.ERROR)
 
 app = Flask(__name__)
+bcrypt = Bcrypt(app)
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
@@ -73,22 +75,26 @@ def login_user():
         abort(404)
 
     username = sanitize_input(request.json.get("username"))
-    password = sanitize_input(request.json.get("password"))
+    client_hashed_password = sanitize_input(request.json.get("password"))
 
     user =  db.get_user(username)
-    
+
     if user is None:
         return jsonify({"error": f"User \"{username}\" does not exist."}), 404
 
-    # placeholder password verification
-    if password != user.password:
+    if user and bcrypt.check_password_hash(user.password, client_hashed_password):
+        flask_session.clear()
+        flask_session['username'] = username
+        return url_for('home', username=username)
+
+    else:
         return jsonify({"error": "Incorrect password"}), 401
 
-    flask_session.clear()
-    flask_session['username'] = username 
+    # flask_session.clear()
+    # flask_session['username'] = username 
 
-    # user was successful in logging in.
-    return url_for('home', username=request.json.get("username"))
+    # # user was successful in logging in.
+    # return url_for('home', username=request.json.get("username"))
 
 
 # handles a get request to the signup page
@@ -106,11 +112,12 @@ def signup_user():
         abort(404)
 
     username = sanitize_input(request.json.get("username"))
-    password = sanitize_input(request.json.get("password"))
-    salt = request.json.get("salt")
+    client_hashed_password = sanitize_input(request.json.get("password"))
 
     if db.get_user(username) is None:
-        db.insert_user(username, password)
+        hashed_password = bcrypt.generate_password_hash(
+            client_hashed_password).decode('utf-8')
+        db.insert_user(username, hashed_password)
         flask_session.clear()
         flask_session['username'] = db.get_user(username).username
         return url_for('home', username=username)

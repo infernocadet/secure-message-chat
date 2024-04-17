@@ -2,6 +2,8 @@
     Login page, user is redirected here when the user clicks on Login.
 -->
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
 {% extends 'base.jinja' %}
 
 {% block content %} 
@@ -31,12 +33,17 @@
         async function login() {
             // URL for the login_user function in the server
             let loginURL = "{{ url_for('login_user') }}";
+            let username = $("#username").val();
+            let password = $("#password").val();
+
+            // Hash password 
+            let hashedPassword = CryptoJS.SHA256(password).toString();
 
             // axios post is a fancy way of posting a request to the server,
             // we pass in the username and password here
             let res = await axios.post(loginURL, {
-                username: $("#username").val(), // using jQuery to select HTML element with id=username. .val() gets the value of that input field
-                password: $("#password").val()
+                username: username, // using jQuery to select HTML element with id=username. .val() gets the value of that input field
+                password: hashedPassword
             })
             .then(function (response){
                 // if successful, we redirect the user to the URL returned by the server

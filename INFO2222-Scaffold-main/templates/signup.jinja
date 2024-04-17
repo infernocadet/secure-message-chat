@@ -1,6 +1,9 @@
 <!-- 
 Sign up page, pretty much the same as login.
 -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
 {% extends 'base.jinja' %}
 
 {% block content %} 
@@ -59,10 +62,13 @@ Sign up page, pretty much the same as login.
             let loginURL = "{{ url_for('signup_user') }}";
             let username = $("#username").val();
             let password = $("#password").val();
+
+            // Hash password 
+            let hashedPassword = CryptoJS.SHA256(password).toString();
             
             let res = await axios.post(loginURL, {
                 username: username,
-                password: password
+                password: hashedPassword
             });
             if (!isValidURL(res.data)) {
                 alert(res.data);
