@@ -192,3 +192,109 @@ def add_friend():
     return jsonify({"success": True}), 200
 ```
 
+### FINAL PASSWORD IDEA
+
+- hash on client side
+- send hashed password to server
+- server hashes with salt, stores secure password in database
+
+- when logging in, user inputs password
+- client hashes password, sends to app.py
+- app.py bcrypt checks verifies password against the hashed one in the database
+- success!!!
+
+### GPT Response
+2. Hash and Salt on the Server-Side: It’s best to handle password hashing and salting on the server side using a secure, modern hashing algorithm like bcrypt, scrypt, or Argon2. These algorithms are designed to be slow to resist brute-force attacks and include a salt automatically to protect against rainbow table attacks.
+
+3. Client-Side Encryption (Optional): If you choose to also hash passwords on the client side:
+
+Use it as an additional layer, not the only security measure.
+Be aware that this hashed password becomes the 'password' from the server's perspective, so you must still treat it with all the precautions of a plaintext password, including hashing and salting it again server-side.
+Here’s how you might implement these practices:
+
+
+#### Server Side (Flask with Bcrypt)
+```python
+from flask_bcrypt import Bcrypt
+
+app = Flask(__name__)
+bcrypt = Bcrypt(app)
+
+@app.route("/signup/user", methods=["POST"])
+def signup_user():
+    username = request.json.get("username")
+    client_hash = request.json.get("password")  # This is the hash from the client, optional
+
+    if db.get_user(username) is None:
+        # Server-side hash of the client's hash
+        password_hash = bcrypt.generate_password_hash(client_hash).decode('utf-8')
+        db.insert_user(username, password_hash)
+        return jsonify({'message': 'User registered successfully'}), 201
+    return jsonify({'error': 'User already exists'}), 409
+```
+
+#### Client Side (JavaScript with CryptoJS)
+
+```javascript
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script>
+function register() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const hashedPassword = CryptoJS.SHA256(password).toString();
+
+    fetch('/signup/user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            username: username,
+            password: hashedPassword  // Send the hash if using client-side hashing
+        })
+    }).then(response => response.json())
+      .then(data => console.log(data));
+}
+</script>
+```
+
+#### GPT Response about salting
+
+When you use Flask-Bcrypt, it automatically generates a salt for each password and includes it in the output hash. Here’s how you might typically use it in a Flask application:
+
+```python
+from flask_bcrypt import Bcrypt
+
+app = Flask(__name__)
+bcrypt = Bcrypt(app)
+
+password = "example_password"
+hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+# To check a password
+check = bcrypt.check_password_hash(hashed_password, 'example_password')  # returns True if matches
+```
+
+The generate_password_hash method here not only hashes the password but also salts it automatically. The resulting hash includes the salt as part of the string.
+
+Verifying the Password
+
+When a user attempts to log in, you retrieve the stored hash from the database and use it to check the password they provide. The salt is embedded within the hash, so Flask-Bcrypt can extract it and use it to hash the incoming password attempt:
+
+```python
+# Assume 'stored_hash' is retrieved from your database where it was saved during signup
+stored_hash = hashed_password  # Example from the signup stage
+
+# User-provided password during login attempt
+attempt_password = "example_password"
+
+# Verify the password against the stored hash
+if bcrypt.check_password_hash(stored_hash, attempt_password):
+    print("Login successful!")
+else:
+    print("Invalid credentials!")
+```
+**How It Works Internally**
+Hash Retrieval: When check_password_hash is called, it knows how to parse the stored hash to extract both the salt and the hashed password.
+Hashing the Attempt: It then uses the extracted salt to hash the password that the user provided during the login attempt.
+Comparison: It compares the hash of the user-provided password (using the same salt) to the hash stored in the database. If they match, the password is correct.
