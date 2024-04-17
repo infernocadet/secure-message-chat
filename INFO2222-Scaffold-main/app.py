@@ -92,13 +92,8 @@ def login_user():
         else:
             return jsonify({"error": "Incorrect password"}), 401
     except:
-        return jsonify({"error": "An error occurred when trying to log in."}), 500
-
-    # flask_session.clear()
-    # flask_session['username'] = username 
-
-    # # user was successful in logging in.
-    # return url_for('home', username=request.json.get("username"))
+        # happens when trying to access old user from previous versions of password hashing
+        return jsonify({"error": "An error occurred when trying to log in."}), 500 
 
 
 # handles a get request to the signup page
