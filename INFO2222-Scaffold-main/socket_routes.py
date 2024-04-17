@@ -71,9 +71,7 @@ def join(sender_name, receiver_name):
     receiver_name = receiver_name.strip()
     
     receiver = db.get_user(receiver_name)
-    print("something")
-    print(receiver_name)
-    print("doing something")
+
     if receiver is None:
         return "Unknown receiver!"
     
