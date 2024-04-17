@@ -7,14 +7,13 @@ the socket event handlers are inside of socket_routes.py
 from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
 from flask import session as flask_session
 from flask_socketio import SocketIO, emit
-from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from datetime import timedelta
 from functools import wraps
 from sqlalchemy.orm import sessionmaker
 import db
 import secrets
-from db import engine, Session, verify_password
+from db import engine, Session
 from models import User, FriendRequest
 from shared_state import user_sessions
 from bleach import clean # for sanitizing user input
@@ -26,8 +25,6 @@ from bleach import clean # for sanitizing user input
 # log.setLevel(logging.ERROR)
 
 app = Flask(__name__)
-bcrypt = Bcrypt(app)
-CORS(app)
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
@@ -38,7 +35,6 @@ socketio = SocketIO(app)
 
 # don't remove this!!
 import socket_routes
-
 
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
@@ -84,8 +80,9 @@ def login_user():
     if user is None:
         return jsonify({"error": f"User \"{username}\" does not exist."}), 404
 
-    if not verify_password(user.password, password):
-        return jsonify({"error": "Incorrect password."}), 409
+    # placeholder password verification
+    if password != user.password:
+        return jsonify({"error": "Incorrect password"}), 401
 
     flask_session.clear()
     flask_session['username'] = username 
@@ -113,7 +110,7 @@ def signup_user():
     salt = request.json.get("salt")
 
     if db.get_user(username) is None:
-        db.insert_user(username, password, salt)
+        db.insert_user(username, password)
         flask_session.clear()
         flask_session['username'] = db.get_user(username).username
         return url_for('home', username=username)

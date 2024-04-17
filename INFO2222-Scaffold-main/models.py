@@ -40,7 +40,6 @@ class User(Base):
     # in other words we've mapped the username Python object property to an SQL column of type String 
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
-    salt: Mapped[str] = mapped_column(String)
 
     # establishing relationship with user model. joins with the friend_table.
     # back_populates ensures that adding friends is bi-directional

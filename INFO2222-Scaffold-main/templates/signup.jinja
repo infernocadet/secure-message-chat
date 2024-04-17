@@ -1,13 +1,7 @@
 <!-- 
 Sign up page, pretty much the same as login.
 -->
-
-<!-- SHA256 hashing library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script> 
-
-
 {% extends 'base.jinja' %}
-
 
 {% block content %} 
     <h1>Sign Up</h1>
@@ -65,11 +59,10 @@ Sign up page, pretty much the same as login.
             let loginURL = "{{ url_for('signup_user') }}";
             let username = $("#username").val();
             let password = $("#password").val();
-            let passwordHashed = sha256(salt + password); // Hashes password with salt
-
+            
             let res = await axios.post(loginURL, {
                 username: username,
-                password: passwordHashed
+                password: password
             });
             if (!isValidURL(res.data)) {
                 alert(res.data);
