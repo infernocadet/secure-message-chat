@@ -10,7 +10,7 @@ Prisma docs also looks so much better in comparison
 or use SQLite, if you're not into fancy ORMs (but be mindful of Injection attacks :) )
 '''
 
-from sqlalchemy import String, Table, Column, Integer, ForeignKey
+from sqlalchemy import String, Table, Column, Integer, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import Dict, List
 
@@ -40,6 +40,7 @@ class User(Base):
     # in other words we've mapped the username Python object property to an SQL column of type String 
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
+    public_key: Mapped[str] = mapped_column(Text, nullable=True) # Storing public key as text
 
     # establishing relationship with user model. joins with the friend_table.
     # back_populates ensures that adding friends is bi-directional

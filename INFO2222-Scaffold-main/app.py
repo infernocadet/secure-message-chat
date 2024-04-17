@@ -112,11 +112,13 @@ def signup_user():
 
     username = sanitize_input(request.json.get("username"))
     client_hashed_password = sanitize_input(request.json.get("password"))
+    public_key = request.json.get("publicKey")
 
     if db.get_user(username) is None:
         hashed_password = bcrypt.generate_password_hash(
             client_hashed_password).decode('utf-8')
-        db.insert_user(username, hashed_password)
+        db.insert_user(username, hashed_password, public_key)
+        print(f"User {username} created, password: {hashed_password}, key: {public_key}")
         flask_session.clear()
         flask_session['username'] = db.get_user(username).username
         return url_for('home', username=username)

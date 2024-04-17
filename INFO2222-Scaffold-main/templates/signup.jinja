@@ -19,6 +19,7 @@ Sign up page, pretty much the same as login.
     <button id="signupButton" onclick="signup()" disabled>Sign up</button>
 
     <script>
+        
         document.getElementById("password").addEventListener('input', function(event) {
             const password = event.target.value;
             passwordValid = validatePassword(password);
@@ -55,20 +56,60 @@ Sign up page, pretty much the same as login.
             return false;
         }
 
-        // this function is identical to login(), see login.jinja
-        async function signup() {
+        async function generateAndStoreKeyPair(){
+
+            const keyPair = await window.crypto.subtle.generateKey(
+                {
+                    name: "RSA-OAEP",
+                    modulusLength: 2048,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    hash: "SHA-256"
+                },
+                true, // whether the key is extractable (i.e., can be taken out of the web crypto API)
+                ["encrypt", "decrypt"] // key usages
+            );
+
+
+            // export public key in a format which can be sent to server
+            const exportedPublicKey = await window.crypto.subtle.exportKey(
+                "spki",
+                keyPair.publicKey
+            );
+
+            // convert to base64 so it can be sent in a JSON object
+            const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
+
+            return {publicKey: publicKeyBase64, privateKey: keyPair.privateKey};
+        }
+
+        document.getElementById('signupButton').addEventListener('click', async () => {
+            const username = $("#username").val();
+            const password = $("#password").val();
+
+            // Generate a key pair for the user
+            const keyPair = await generateAndStoreKeyPair();
+
+            // Store the private key securely in local storage
+            storePrivateKeyLocally(keyPair.privateKey);
+
+            // sign up
+            signup(username, password, keyPair.publicKey)
+
+        })
+
+        
+        async function signup(username, password, publicKey) {
             let signupButton = document.getElementById('signupButton');
             signupButton.disabled = true; // disables button, prevents multiple submissions
             let loginURL = "{{ url_for('signup_user') }}";
-            let username = $("#username").val();
-            let password = $("#password").val();
 
             // Hash password 
             let hashedPassword = CryptoJS.SHA256(password).toString();
             
             let res = await axios.post(loginURL, {
                 username: username,
-                password: hashedPassword
+                password: hashedPassword,
+                publicKey: publicKey
             });
             if (!isValidURL(res.data)) {
                 alert(res.data);
@@ -77,5 +118,21 @@ Sign up page, pretty much the same as login.
             }
             window.open(res.data, "_self");
         }
+
+        
+        function storePrivateKeyLocally(privateKey){
+            // implementaiton to store private key securely using local storage
+            // convert cryptokey into storable format
+            window.crypto.subtle.exportKey('jwk', privateKey)
+                .then(key => {
+                    // convert the JWK into a string to store in Local Storage
+                    const keyString = JSON.stringify(key);
+                    localStorage.setItem('privateKey', keyString);
+                })
+                .catch(err => {
+                    console.error("Error exporting key:", err);
+                });
+        }
+
     </script>
 {% endblock %}
