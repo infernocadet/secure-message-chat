@@ -173,8 +173,9 @@
             <input id="receiver" placeholder="username">
             <!-- MDN says its bad practice to use the onclick attribute,
             but we're using it anyways coz its easy :)-->
-            <button onclick="join_room()">Chat</button>
+            <button onclick="chat_button_clicked()" id="chatButton" disabled>Chat</button>
         </section>
+        <p id="chatRequestResponse" style="display:none;"></p>
 
         <!-- The (message) input box is set to display: none initially, 
         this means the input box is "invisible" initially-->
@@ -200,6 +201,7 @@
 <script src="/static/js/libs/socket.io.min.js"></script>
 <script>
     let room_id = 0;
+    let friendsList = [];
 
     // when the user presses the "Enter" key inside of the "message box", 
     // the message is sent to the server
@@ -211,11 +213,12 @@
 
     // when the user presses the enter key inside of the "receiver box"
     // the user joins a (socket) room
-     $("#receiver").on("keyup", (e) => {
+    // DEPRECATED, changed to click only function. update later
+     {# $("#receiver").on("keyup", (e) => {
         if (e.key == "Enter") {
             join_room();
         }
-    })
+    }) #}
 
 
     $(document).ready(() => {
@@ -303,9 +306,6 @@
         let friendUsername = document.getElementById('friendUsername').value;
         let currentUsername = "{{ username }}";
 
-        console.log("Friend: ", friendUsername); 
-        console.log("Current: ", currentUsername);
-
         // add in error handling to prevent users from adding themselves
         if (friendUsername == currentUsername) {
             document.getElementById('friendRequestMessage').textContent = "Can't add yourself!";
@@ -316,7 +316,6 @@
         // construct url for the post event
         let addFriendURL = "{{ url_for('add_friend') }}";
 
-        console.log("sending axios post thingo")
         // use axios to send post request
         axios.post(addFriendURL, {
             current_user: currentUsername,
@@ -579,6 +578,88 @@
         history.pushState(null, null, '/');
     });
     }
+
+    document.getElementById('receiver').addEventListener('keyup', function(){
+        let receiverInput = document.getElementById('receiver').value;
+        let chatButton = document.getElementById('chatButton').disabled = !receiverInput.trim();
+
+        
+    })
+
+    function chat_button_clicked(){
+        let receiver = $("#receiver").val();
+        if (!receiver) {
+            alert("Please enter a username");
+            return;
+        }
+
+        fetchFriends().then(() => {
+            // check if receiver is already a friend
+            if (isFriend(receiver)){
+                join_room();
+            } else {
+                // if not, try adding them as a friend.
+                // i should've made the previous add friend function callable, but i'm lazy
+                chatSendFriendRequest(receiver);
+            }
+        }).catch(error => {
+            console.error('Failed to catch friends:', error);
+        });
+    }
+
+    function fetchFriends() {
+        return axios.get("{{ url_for('get_friends') }}")
+        .then(function(response){
+            friendsList = response.data.friends;
+            console.log('Updated friends list:', friendsList);
+            return friendsList
+        })
+        .catch(function(error){
+            console.error('Error:', error)
+        });
+    }
+
+    function isFriend(receiver){
+        return friendsList.includes(receiver);
+    }
+
+    function chatSendFriendRequest(receiver){
+        axios.post("{{ url_for('add_friend') }}", {
+            current_user: "{{ username }}",
+            friend_user: receiver
+        })
+        .then(function(response){
+            console.log("Response Data:", response.data);
+            const chatRequestResponse = document.getElementById('chatRequestResponse');
+            if (response.data.success) {
+                chatRequestResponse.textContent = "Friend request sent to " + receiver;
+            } else {
+                chatRequestResponse.textContent = "Unexpected response: " + JSON.stringify(response.data);
+            }
+            chatRequestResponse.style.display = 'block';
+            
+            // Set timeout to hide the message
+            setTimeout(() => {
+                chatRequestResponse.style.display = 'none';
+            }, 2500);
+        })
+        .catch(function(error){
+           console.error('Error during friend request:', error);
+            const chatRequestResponse = document.getElementById('chatRequestResponse');
+            if (error.response && error.response.data && error.response.data.error) {
+                chatRequestResponse.textContent = error.response.data.error;
+            } else {
+                chatRequestResponse.textContent = "An unexpected error occurred.";
+            }
+            chatRequestResponse.style.display = 'block';
+
+            // Set timeout to hide the message
+            setTimeout(() => {
+                chatRequestResponse.style.display = 'none';
+            }, 2500);
+        });
+    }
+
     
 </script>
 {% endblock %}

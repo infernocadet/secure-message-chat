@@ -75,6 +75,7 @@ def login_user():
         abort(404)
 
     username = sanitize_input(request.json.get("username"))
+    print(username)
     client_hashed_password = sanitize_input(request.json.get("password"))
 
     user =  db.get_user(username)
@@ -135,18 +136,10 @@ def page_not_found(_):
 @login_required
 def home():
 
-    # get the current user's username from the request (cleaned)
-    current_user_username = sanitize_input(request.args.get("username"))
+    # get the current username from the session
+    current_user_username = flask_session.get("username")
 
-    if current_user_username is None:
-        abort(404)
-    
-    # check if the current user is the same as the user in the session
-    try:
-        if current_user_username != flask_session.get("username"):
-            return redirect(url_for('login'))
-    except Exception as e:
-        print(e)
+    if not current_user_username:
         return redirect(url_for('login'))
 
     db_session = Session()
@@ -186,8 +179,8 @@ def add_friend():
     if not request.is_json:
         abort(404)    
     
-    # get the current username and friend username from the request
-    current_user_username = sanitize_input(request.json.get("current_user"))
+    # get the current username and friend username
+    current_user_username = flask_session.get("username")
     friend_username = sanitize_input(request.json.get("friend_user"))
 
     try:
@@ -341,6 +334,32 @@ def reject_friend_request():
 
     finally:
         db_session.close()
+
+
+@app.route("/api/get-friends")
+@login_required
+def get_friends():
+
+    # obtain current username from session
+    current_user_username = flask_session.get("username")
+
+    # open a session to database
+    db_session = Session()
+    try:
+        # retrieve user object from database
+        current_user = db_session.query(User).filter_by(username=current_user_username).first()
+
+        if current_user is None:
+            return jsonify({"error": "User not found"}), 404
+        
+        # retrieve friends list from user object
+        friends = [friends.username for friends in current_user.friends]
+
+        # return list as json
+        return jsonify(friends=friends), 200
+    finally:
+        db_session.close()
+    
 
 # route to logout
 @app.route("/logout")
