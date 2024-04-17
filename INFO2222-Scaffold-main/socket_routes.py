@@ -66,8 +66,14 @@ def send(username, message, room_id):
 # sent when the user joins a room
 @socketio.on("join")
 def join(sender_name, receiver_name):
+
+    sender_name = sender_name.strip()
+    receiver_name = receiver_name.strip()
     
     receiver = db.get_user(receiver_name)
+    print("something")
+    print(receiver_name)
+    print("doing something")
     if receiver is None:
         return "Unknown receiver!"
     

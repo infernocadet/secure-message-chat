@@ -86,13 +86,6 @@
 
 </style>
 
-<!--Navbar, you'll see the username here-->
-{# <nav style="border-bottom: 1px solid black;">
-    <ol style="float: left">
-        <li style="display:inline-block">Username:  {{ username }} </li>
-    </ol>
-</nav> #}
-
 <nav>
     <ul>
     <li style="display:inline-block; float: left">Logged in as: {{ username }}</li>
@@ -203,6 +196,7 @@
     let room_id = 0;
     let friendsList = [];
 
+
     // when the user presses the "Enter" key inside of the "message box", 
     // the message is sent to the server
     $("#message").on("keyup", (e) => {
@@ -233,6 +227,41 @@
         $("#chat_box").hide();
         $("#input_box").show();
         room_id = parseInt(Cookies.get("room_id"));
+
+         // Attach event handler to the friends list using event delegation
+        $('#friendsList').on('click', 'li', function() {
+            var friendUsername = $(this).text(); // Assuming the username is the text of the li element
+            click_join(friendUsername);
+        });
+        
+        // update friends list when a new friend is added
+        socket.on("update_friends_list", function(data){
+
+            // backend sends username of new friend
+            let newFriendUsername = data.new_friend;
+
+            // get all current friends list elements
+            let friendsList = document.getElementById('friendsList');
+            let friendsSection = document.getElementById('friendsSection');
+            let lonelyMessage = document.getElementById('lonelyMessage');
+
+            // check if friends list exists, create if not
+            if (!friendsList){
+                if (lonelyMessage){
+                    lonelyMessage.remove();
+                }
+                friendsList = document.createElement('ul');
+                friendsList.id = 'friendsList';
+                friendsSection.appendChild(friendsList)
+            }
+
+            // add friend into the list
+            let newFriendItem = document.createElement('li');
+            newFriendItem.textContent = newFriendUsername;
+            newFriendItem.id = "friend-" + newFriendUsername;
+            friendsList.appendChild(newFriendItem);
+            
+        });
     })
     
     // Here's the Socket IO part of the code
@@ -298,6 +327,8 @@
         let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
         box.append(child);
     }
+
+    
 
     // adding friend function
     document.getElementById('friendrequestForm').addEventListener('submit', function(event) {
@@ -411,35 +442,8 @@
             document.getElementById('requestResponse').style.display = 'block';
         });
     };
-    
-    // update friends list when a new friend is added
-    socket.on("update_friends_list", function(data){
 
-        // backend sends username of new friend
-        let newFriendUsername = data.new_friend;
-
-        // get all current friends list elements
-        let friendsList = document.getElementById('friendsList');
-        let friendsSection = document.getElementById('friendsSection');
-        let lonelyMessage = document.getElementById('lonelyMessage');
-
-        // check if friends list exists, create if not
-        if (!friendsList){
-            if (lonelyMessage){
-                lonelyMessage.remove();
-            }
-            friendsList = document.createElement('ul');
-            friendsList.id = 'friendsList';
-            friendsSection.appendChild(friendsList)
-        }
-
-        // add friend into the list
-        let newFriendItem = document.createElement('li');
-        newFriendItem.textContent = newFriendUsername;
-        newFriendItem.id = "friend-" + newFriendUsername;
-        friendsList.appendChild(newFriendItem);
-        
-    });
+    // this is where update friends list was before
 
     // update friend requests list when a friend request is received
     socket.on("update_friend_requests", function(data){
