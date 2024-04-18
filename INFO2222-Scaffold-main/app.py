@@ -6,9 +6,9 @@ the socket event handlers are inside of socket_routes.py
 
 from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
 from flask import session as flask_session
+# from flask_talisman import Talisman
 from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO, emit
-from flask_cors import CORS
 from datetime import timedelta
 from functools import wraps
 from sqlalchemy.orm import sessionmaker
@@ -33,7 +33,37 @@ app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
+
+# csp = {
+#     'default-src': [
+#         '\'self\'',
+#         'https://172.17.148.207',
+#         'https://192.168.0.6',
+#         'unsafe-inline'
+#     ],
+#     'img-src': '*',
+#     'media-src': [
+#         '\'self\'',
+#         'https://172.17.148.207',
+#         'https://192.168.0.6'
+#     ],
+#     'script-src': [
+#         '\'self\'',
+#         'https://172.17.148.207',
+#         'https://192.168.0.6',
+#         'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js'
+#     ],
+#     'style-src': [
+#         '\'self\'',
+#         'https://172.17.148.207',
+#         'https://192.168.0.6',
+#         'unsafe-inline'
+#     ]
+# }
+
+# Talisman(app, content_security_policy=csp)
 
 # don't remove this!!
 import socket_routes
@@ -45,6 +75,8 @@ Session = sessionmaker(bind=engine)
 # you will see that i have used this function in the login and signup routes, and addfriend routes to sanitise any user data that is sent to the server
 # jinja automatically escapes html attributes that return back to the client using the double curly braces {{ }} so we don't need to worry about that
 def sanitize_input(input):
+    if not isinstance(input, str):
+        input = str(input)
     return clean(input, strip=True, tags=[], attributes={})
 
 
