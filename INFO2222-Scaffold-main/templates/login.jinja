@@ -36,6 +36,8 @@
             let username = $("#username").val();
             let password = $("#password").val();
 
+            logPrivateKeyForTesting(username);
+
             // Hash password 
             let hashedPassword = CryptoJS.SHA256(password).toString();
 
@@ -48,6 +50,7 @@
             .then(function (response){
                 // if successful, we redirect the user to the URL returned by the server
                 // window.open(res.data, "_self")
+                
                 window.location.href = response.data;
             })
             .catch(function (error) {
@@ -64,5 +67,17 @@
                  document.getElementById('loginMessage').style.display = "block";
             });
         }
+
+        function logPrivateKeyForTesting(username) {
+            let address = 'privateKey_' + username;
+            const privateKeyString = localStorage.getItem(address);
+            console.log("(login)Trying to find private key at: ", address);
+            if (privateKeyString) {
+                console.log("(login)Private Key for Testing:", username, privateKeyString);
+            } else {
+                console.log("(login)No Private Key found in Local Storage.");
+            }
+        }
+
     </script>
 {% endblock %}
