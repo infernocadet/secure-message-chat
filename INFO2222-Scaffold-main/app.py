@@ -363,7 +363,7 @@ def get_friends():
         return jsonify(friends=friends), 200
     finally:
         db_session.close()
-    
+
 
 # route to logout
 @app.route("/logout")
