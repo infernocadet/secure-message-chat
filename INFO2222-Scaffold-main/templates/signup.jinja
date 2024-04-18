@@ -19,6 +19,28 @@ Sign up page, pretty much the same as login.
     <button id="signupButton" disabled>Sign up</button>
 
     <script>
+    
+        let db;
+
+        window.onload = function() {
+            // open or create database
+            let open = indexedDB.open("CryptoKeys", 1);
+
+            // create schema
+            open.onupgradeneeded = function() {
+                let db = open.result;
+                db.createObjectStore("PrivateKeyStore", {keyPath: "id"});
+            };
+
+            open.onsuccess = function() {
+                // start a new transaction
+                db = open.result;
+            };
+
+            open.onerror = function(err) {
+                console.error("IndexedDB error:", err);
+            };
+        }
         
         document.getElementById("password").addEventListener('input', function(event) {
             const password = event.target.value;
@@ -85,24 +107,26 @@ Sign up page, pretty much the same as login.
         async function storePrivateKeyLocally(username, privateKey){
             try {
                 const key = await window.crypto.subtle.exportKey('jwk', privateKey);
-                const keyString = JSON.stringify(key);
-                let address = 'privateKey_' + username;
-                localStorage.setItem(address, keyString);
-                console.log("stored private key at " + address + ":", keyString);
+                const transaction = db.transaction(["PrivateKeyStore"], "readwrite");
+                const store = transaction.objectStore("PrivateKeyStore");
+                store.put({id: username, key: JSON.stringify(key)});
             } catch (err){
-                console.error("Error exporting key:", err);
+                console.error("Error exporting or storing key:", err);
             }
         }
 
         function logPrivateKeyForTesting(username){
-            let address = 'privateKey_' + username;
-            const privateKeyString = localStorage.getItem(address);
-            console.log("Trying to find private key at: ", address);
-            if (privateKeyString){
-                console.log("(Signup)Private key:", username, privateKeyString);
-            } else {
-                console.log("(Signup)No private key stored")
-            }
+            const transaction = db.transaction(["PrivateKeyStore"], "readonly");
+            const store = transaction.objectStore("PrivateKeyStore");
+            const request = store.get(username);
+
+            request.onsuccess = function() {
+                if (request.result) {
+                    console.log("(Signup)Private key:", username, request.result.key);
+                } else {
+                    console.log("(Signup)No private key stored")
+                }
+            };
         }
 
         document.getElementById('signupButton').addEventListener('click', async () => {
