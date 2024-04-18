@@ -205,15 +205,11 @@
         }
     })
 
-    // when the user presses the enter key inside of the "receiver box"
-    // the user joins a (socket) room
-    // DEPRECATED, changed to click only function. update later
-     {# $("#receiver").on("keyup", (e) => {
-        if (e.key == "Enter") {
-            join_room();
-        }
-    }) #}
-
+    // Attach event handler to the friends list using event delegation
+    $('#friendsList').on('click', 'li', function() {
+        var friendUsername = $(this).text(); // Assuming the username is the text of the li element
+        click_join(friendUsername);
+    });
 
     $(document).ready(() => {
         // room_id is undefined if the user hasn't joined a room
@@ -229,41 +225,7 @@
         room_id = parseInt(Cookies.get("room_id"));
         console.log(room_id)
 
-         // Attach event handler to the friends list using event delegation
-        $('#friendsList').on('click', 'li', function() {
-            var friendUsername = $(this).text(); // Assuming the username is the text of the li element
-            click_join(friendUsername);
-        });
-
-        // update friends list when a new friend is added
-        socket.on("update_friends_list", function(data){
-
-            // backend sends username of new friend
-            let newFriendUsername = data.new_friend;
-
-            // get all current friends list elements
-            let friendsList = document.getElementById('friendsList');
-            let friendsSection = document.getElementById('friendsSection');
-            let lonelyMessage = document.getElementById('lonelyMessage');
-
-            // check if friends list exists, create if not
-            if (!friendsList){
-                if (lonelyMessage){
-                    lonelyMessage.remove();
-                }
-                friendsList = document.createElement('ul');
-                friendsList.id = 'friendsList';
-                friendsSection.appendChild(friendsList)
-            }
-
-            // add friend into the list
-            let newFriendItem = document.createElement('li');
-            newFriendItem.textContent = newFriendUsername;
-            newFriendItem.id = "friend-" + newFriendUsername;
-            friendsList.appendChild(newFriendItem);
-            
-        });
-    })
+    });
     
     // Here's the Socket IO part of the code
     // things get a bit complicated here so brace yourselves :P
@@ -331,7 +293,6 @@
     }
 
     
-
     // adding friend function
     document.getElementById('friendrequestForm').addEventListener('submit', function(event) {
         event.preventDefault(); // prevent form from submitting the traditional way
@@ -557,6 +518,35 @@
                 sentRequestsSection.appendChild(noSentRequestsMessage);
             }
         }
+    });
+
+    // update friends list when a new friend is added
+    socket.on("update_friends_list", function(data){
+
+        // backend sends username of new friend
+        let newFriendUsername = data.new_friend;
+
+        // get all current friends list elements
+        let friendsList = document.getElementById('friendsList');
+        let friendsSection = document.getElementById('friendsSection');
+        let lonelyMessage = document.getElementById('lonelyMessage');
+
+        // check if friends list exists, create if not
+        if (!friendsList){
+            if (lonelyMessage){
+                lonelyMessage.remove();
+            }
+            friendsList = document.createElement('ul');
+            friendsList.id = 'friendsList';
+            friendsSection.appendChild(friendsList)
+        }
+
+        // add friend into the list
+        let newFriendItem = document.createElement('li');
+        newFriendItem.textContent = newFriendUsername;
+        newFriendItem.id = "friend-" + newFriendUsername;
+        friendsList.appendChild(newFriendItem);
+        
     });
 
     // function to join a room with a friend
