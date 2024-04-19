@@ -61,7 +61,22 @@ def disconnect():
 def send(username, message, room_id):
     sanitised_message = clean(message)
     emit("incoming", (f"{username}: {sanitised_message}"), to=room_id) # to test, <script>alert('XSS Test');</script>
-    
+
+
+# Template for the message event handler
+########################################
+# store message to database
+# @socketio.on('message')
+# def handle_message(data):
+#     sender_id = data['sender_id']
+#     receiver_id = data['receiver_id']
+#     content = data['content']
+#     message = Message(sender_id=sender_id,
+#                       receiver_id=receiver_id, content=content)
+#     db.session.add(message)
+#     db.session.commit()
+########################################
+
 # join room event handler
 # sent when the user joins a room
 @socketio.on("join")
