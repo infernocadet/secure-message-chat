@@ -84,15 +84,14 @@ class Counter():
 class Room():
     def __init__(self):
         self.counter = Counter()
-        # dictionary that maps the username to the room id
-        # for example self.dict["John"] -> gives you the room id of 
-        # the room where John is in
         self.dict: Dict[str, int] = {}
+        self.initiators: Dict[int, str] = {} # maps room id to initiators username
 
     def create_room(self, sender: str, receiver: str) -> int:
         room_id = self.counter.get()
         self.dict[sender] = room_id
         self.dict[receiver] = room_id
+        self.initiators[room_id] = sender
         return room_id
     
     def join_room(self,  sender: str, room_id: int) -> int:
@@ -108,4 +107,7 @@ class Room():
         if user not in self.dict.keys():
             return None
         return self.dict[user]
+    
+    def get_initiator(self, room_id: int):
+        return self.initiators.get(room_id, None)
     

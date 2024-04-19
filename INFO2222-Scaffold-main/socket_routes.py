@@ -71,34 +71,54 @@ def join(sender_name, receiver_name):
     receiver_name = receiver_name.strip()
     
     receiver = db.get_user(receiver_name)
-
     if receiver is None:
         return "Unknown receiver!"
-    
     sender = db.get_user(sender_name)
     if sender is None:
         return "Unknown sender!"
 
     room_id = room.get_room_id(receiver_name)
-
-    # if the user is already inside of a room 
-    if room_id is not None:
-        
+    if room_id is None:
+        room_id = room.create_room(sender_name, receiver_name) # sets sender as the initiator
+        join_room(room_id)
+        emit("waiting", {"room_id": room_id, "receiver": receiver_name}, to=room_id)
+        emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=room_id)
+    else:
         room.join_room(sender_name, room_id)
         join_room(room_id)
-        # emit to everyone in the room except the sender
-        emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
-        # emit only to the sender
-        emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
-        return room_id
+        print(f"Emitting room_ready to room {room_id}, from {sender_name} with friendUsername {receiver_name}")
+        emit("room_ready", {"room_id": room_id, "sender": sender_name, "receiver": receiver_name}, to=room_id)
+    
+    return room_id
+
+    # # check if both participants are in the room
+    # participants = [user for user, rid in room.dict.items() if rid == room_id]
+    # if len(participants) == 2:
+    #     print(f"Sockets sees two people in here: {participants[0]} and {participants[1]}")
+    #     initiator = room.get_initiator(room_id)
+        
+    # else:
+    #     emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=room_id)
+    
+    # return room_id
+    
+    # if the user is already inside of a room 
+    # if room_id is not None:
+        
+    #     room.join_room(sender_name, room_id)
+    #     join_room(room_id)
+    #     # emit to everyone in the room except the sender
+    #     emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
+    #     # emit only to the sender
+    #     emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
+    #     return room_id
 
     # if the user isn't inside of any room, 
     # perhaps this user has recently left a room
     # or is simply a new user looking to chat with someone
-    room_id = room.create_room(sender_name, receiver_name)
-    join_room(room_id)
-    emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"), to=room_id)
-    return room_id
+    
+    
+    
 
 # leave room event handler
 @socketio.on("leave")
@@ -106,3 +126,17 @@ def leave(username, room_id):
     emit("incoming", (f"{username} has left the room.", "red"), to=room_id)
     leave_room(room_id)
     room.leave_room(username)
+
+@socketio.on("send_encrypted_key")
+def handle_send_encrypted_key(data):
+    room_id = data["room_id"]
+    encrypted_key = data["encrypted_key"]
+    sender = data["sender"]
+    print(f"Emitting encrypted key to room {room_id}: {encrypted_key}")
+    emit("receive_encrypted_key", {'encrypted_key': encrypted_key, 'sender': sender, 'room_id': room_id}, to=room_id)
+
+@socketio.on("finally")
+def letsgo(username):
+    sender_name = username
+    room_id = room.get_room_id(sender_name)
+    emit("incoming", (f"{sender_name} has joined the room. Ready for secure communication!", "green"), to=room_id)
