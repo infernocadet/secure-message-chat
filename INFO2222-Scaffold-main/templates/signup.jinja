@@ -24,21 +24,31 @@ Sign up page, pretty much the same as login.
 
         window.onload = function() {
             // open or create database
-            let open = indexedDB.open("CryptoKeys", 1);
+            let request = indexedDB.open("CryptoKeys", 2);
 
             // create schema
-            open.onupgradeneeded = function() {
-                let db = open.result;
-                db.createObjectStore("PrivateKeyStore", {keyPath: "id"});
+            request.onupgradeneeded = function(event) {
+                let db = event.target.result;
+
+                // create object store for private keys if not exist
+                if (!db.objectStoreNames.contains("PrivateKeyStore")) {
+                    db.createObjectStore("PrivateKeyStore", {keyPath: "id"});
+                }
+                
+                // Create an object store for symmetric keys if it doesn't already exist
+                if (!db.objectStoreNames.contains("SymmetricKeys")) {
+                    db.createObjectStore("SymmetricKeys", { keyPath: "id" });
+                }
             };
 
-            open.onsuccess = function() {
+            request.onsuccess = function(event) {
                 // start a new transaction
-                db = open.result;
+                db = event.target.result;
+                console.log("Database opened successfully");
             };
 
-            open.onerror = function(err) {
-                console.error("IndexedDB error:", err);
+            request.onerror = function(event) {
+                console.error("Database error", event.target.errorCode);
             };
         }
         

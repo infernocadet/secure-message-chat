@@ -149,7 +149,6 @@
             {% endif %}    
         </div>
     </aside>
-
 </div>
 
 <div id="main-content">
@@ -205,16 +204,6 @@
         }
     })
 
-    // when the user presses the enter key inside of the "receiver box"
-    // the user joins a (socket) room
-    // DEPRECATED, changed to click only function. update later
-     {# $("#receiver").on("keyup", (e) => {
-        if (e.key == "Enter") {
-            join_room();
-        }
-    }) #}
-
-
     $(document).ready(() => {
         // room_id is undefined if the user hasn't joined a room
         // we early return in this case
@@ -228,41 +217,6 @@
         $("#input_box").show();
         room_id = parseInt(Cookies.get("room_id"));
         console.log(room_id)
-
-         // Attach event handler to the friends list using event delegation
-        $('#friendsList').on('click', 'li', function() {
-            var friendUsername = $(this).text(); // Assuming the username is the text of the li element
-            click_join(friendUsername);
-        });
-
-        // update friends list when a new friend is added
-        socket.on("update_friends_list", function(data){
-
-            // backend sends username of new friend
-            let newFriendUsername = data.new_friend;
-
-            // get all current friends list elements
-            let friendsList = document.getElementById('friendsList');
-            let friendsSection = document.getElementById('friendsSection');
-            let lonelyMessage = document.getElementById('lonelyMessage');
-
-            // check if friends list exists, create if not
-            if (!friendsList){
-                if (lonelyMessage){
-                    lonelyMessage.remove();
-                }
-                friendsList = document.createElement('ul');
-                friendsList.id = 'friendsList';
-                friendsSection.appendChild(friendsList)
-            }
-
-            // add friend into the list
-            let newFriendItem = document.createElement('li');
-            newFriendItem.textContent = newFriendUsername;
-            newFriendItem.id = "friend-" + newFriendUsername;
-            friendsList.appendChild(newFriendItem);
-            
-        });
     })
     
     // Here's the Socket IO part of the code
@@ -270,7 +224,6 @@
     let username = "{{ username }}";
 
     Cookies.set('username', username);
-    console.log(Cookies.get('username'));
 
     // initializes the socket
     const socket = io();
@@ -446,6 +399,35 @@
     };
 
     // this is where update friends list was before
+    // update friends list when a new friend is added
+    socket.on("update_friends_list", function(data){
+
+        // backend sends username of new friend
+        let newFriendUsername = data.new_friend;
+
+        // get all current friends list elements
+        let friendsList = document.getElementById('friendsList');
+        let friendsSection = document.getElementById('friendsSection');
+        let lonelyMessage = document.getElementById('lonelyMessage');
+
+        // check if friends list exists, create if not
+        if (!friendsList){
+            if (lonelyMessage){
+                lonelyMessage.remove();
+            }
+            friendsList = document.createElement('ul');
+            friendsList.id = 'friendsList';
+            friendsSection.appendChild(friendsList)
+        }
+
+        // add friend into the list
+        let newFriendItem = document.createElement('li');
+        newFriendItem.textContent = newFriendUsername;
+        newFriendItem.id = "friend-" + newFriendUsername;
+        newFriendItem.setAttribute('onclick', `click_join('${newFriendUsername}')`); // Bind click event inline
+        friendsList.appendChild(newFriendItem);
+        
+    });
 
     // update friend requests list when a friend request is received
     socket.on("update_friend_requests", function(data){
@@ -559,21 +541,49 @@
         }
     });
 
+    //listen for room readiness before emitting join request
+    socket.on("room_ready", async function(data) {
+        console.log(username + " received room_ready event");
+        if (data.room_id === room_id && username === data.receiver) {
+
+            console.log(username + "Generating symmetric key");
+            const symmetricKey = await generateSymmetricKey(data.room_id);
+            console.log(username + 'Symmetric key generated' + symmetricKey);
+
+            console.log(username + 'Fetching public key from: ' + data.sender + '...');
+            const publicKeyResponse = await fetchPublicKey(data.sender);
+            if (!publicKeyResponse) {
+                console.error('Failed to fetch public key');
+                return;
+            }
+            const publicKeyData = base64ToArrayBuffer(publicKeyResponse);
+            const publicKey = await window.crypto.subtle.importKey("spki", publicKeyData, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]);
+            const encryptedKey = await encryptSymmetricKey(symmetricKey, publicKey);
+
+            console.log("Sending encrypted key from: " + username + " to: " + data.sender + " in room: " + data.room_id + " encrypted key: " + encryptedKey);
+            socket.emit("send_encrypted_key", {room_id: data.room_id, encrypted_key: encryptedKey, sender: data.sender});
+        }
+    });
+
+    socket.on("waiting", function(data) {
+        console.log("Waiting for " + data.receiver + " to join the room...");
+    });
+
     // function to join a room with a friend
-    function click_join(friendUsername) {
+    async function click_join(friendUsername) {
         // use friend's username to join room
-        socket.emit("join", username, friendUsername, (res) => {
+        console.log(username + "beginning click_join");
+        socket.emit("join", username, friendUsername, (res) => { 
             if (typeof res != "number") {
                 alert(res); // alert of error
                 return; // escape early
             }
-
             room_id = res; // set room id from response
             Cookies.set("room_id", room_id); // set cookie
 
             // show message input box and hide chat box
-            $("#chat_box").hide();
-            $("#input_box").show();
+        $("#chat_box").hide();
+        $("#input_box").show();
         });
     }
 
@@ -588,8 +598,6 @@
     document.getElementById('receiver').addEventListener('keyup', function(){
         let receiverInput = document.getElementById('receiver').value;
         let chatButton = document.getElementById('chatButton').disabled = !receiverInput.trim();
-
-        
     })
 
     function chat_button_clicked(){
@@ -664,6 +672,224 @@
                 chatRequestResponse.style.display = 'none';
             }, 2500);
         });
+    }
+
+    // its about to get freaky !!! encryption baby
+
+    let db;
+
+    // Open connection to the IndexedDB
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open("CryptoKeys", 2);
+
+            request.onerror = function(event) {
+                console.error("Database error: " + event.target.errorCode);
+                reject("Failed to open DB");
+            };
+
+            request.onsuccess = function(event) {
+                db = event.target.result;
+                resolve(db);
+            };
+
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains("PrivateKeyStore")) {
+                    db.createObjectStore("PrivateKeyStore", { keyPath: "id" });
+                }
+                if (!db.objectStoreNames.contains("SymmetricKeys")) {
+                db.createObjectStore("SymmetricKeys", { keyPath: "id" });
+                }
+            };
+        });
+    }
+
+    // Retrieve private key for a username
+    async function getPrivateKey(username) {
+        console.log(username + " is attempting to get private key")
+
+        if (!db){
+            db = await openDB();
+        }
+         if (!db) {
+            console.error("Database is not open");
+            return;
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(["PrivateKeyStore"], "readonly");
+            const store = transaction.objectStore("PrivateKeyStore");
+            const request = store.get(username);
+
+            request.onsuccess = async () => {
+                if (request.result) {
+                    console.log("Private key found:", username);
+
+                    try {
+                        // Import the key from the JWK format
+                        const cryptoKey = await window.crypto.subtle.importKey(
+                            "jwk",
+                            JSON.parse(request.result.key), // Parse the stored string back into JSON
+                            {
+                                name: "RSA-OAEP",
+                                hash: { name: "SHA-256" },
+                            },
+                            false, // whether the key is extractable (i.e., can be taken out of the web crypto API)
+                            ["decrypt"] // this key can only be used to decrypt
+                        );
+                        resolve(cryptoKey);
+                    } catch (error) {
+                        console.error("Error importing key:", error);
+                        reject(error);
+                    }
+                } else {
+                    console.log("No private key stored for", username);
+                    resolve(null);
+                }
+            };
+            request.onerror = () => {
+                console.error("Error fetching private key from IndexedDB.");
+                reject("Failed to retrieve key");
+            };
+        });
+    }
+
+    // generate symmetric key used to ENCRYPT ALL THE MESSAGES
+    async function generateSymmetricKey(room_id){
+        const key = await window.crypto.subtle.generateKey(
+            {
+                name: "AES-GCM",
+                length: 256
+            },
+            true,
+            ["encrypt", "decrypt"]
+        );
+
+        // store key in IndexedDB
+        const keyData = await window.crypto.subtle.exportKey("jwk", key);
+        const db = await openDB();
+        const transaction = db.transaction(["SymmetricKeys"], "readwrite");
+        const store = transaction.objectStore("SymmetricKeys");
+        await store.put({id: room_id, key: keyData})
+
+        // now send the key off to be encrypted and broadcasted to the room
+        return key;
+    }
+
+    // encrypt the symmetric key using the receiver's public key
+    async function encryptSymmetricKey(key, publicKey){
+        const exportedKey = await window.crypto.subtle.exportKey(
+            "raw",
+            key
+        );
+        const encryptedKey = await window.crypto.subtle.encrypt(
+            {
+                name: "RSA-OAEP"
+            },
+            publicKey,
+            exportedKey
+        );
+        return encryptedKey;
+    }
+
+    async function fetchPublicKey(username){
+        try {
+            let response = await axios.get(`/get_public_key/${username}`);
+            return response.data.public_key;
+        } catch (error) {
+            console.error('Error fetching public key:', error);
+            return null;
+        }
+    }
+
+    // function to decrypt the encrypted symmetric key
+    async function decryptSymmetricKey(encryptedKey) {
+        // get the private key
+        console.log(username + " is attempting to decrypt symmetric key")
+        const privateKey = await getPrivateKey(username);
+        // decrypt the key
+        console.log("attempting to decrypt key NOW")
+        const decryptedKey = await window.crypto.subtle.decrypt(
+            {
+                name: "RSA-OAEP"
+            },
+            privateKey,
+            encryptedKey
+        );
+        return decryptedKey;
+    }
+
+    // listen for the encrypted key
+    // after decrytipn, the symmetric key is stored in the IndexedDB
+    socket.on("receive_encrypted_key", async function(data) {
+        const sender = data.sender;
+        const room_id = data.room_id;
+        
+        // only the receiver should store the key
+        if (sender === username) {
+            // get the encrypted key
+            const encryptedKey = data.encrypted_key;
+
+            console.log("Received encrypted key:", encryptedKey);
+
+            try {
+                const symmetricKey = await decryptSymmetricKey(encryptedKey);
+                console.log("Symmetric key decrypted:", symmetricKey);
+
+                const db = await openDB();
+                const transaction = db.transaction(["SymmetricKeys"], "readwrite");
+                const store = transaction.objectStore("SymmetricKeys");
+                await store.put({id: room_id, key: symmetricKey});
+
+                console.log("Symmetric key stored in IndexedDB successfully");
+                socket.emit("finally", username);
+            } catch (error) {
+                console.error("Failed to decrypt symmetric key:", error);
+            }
+        } else {
+            return;
+        }    
+    });
+
+    // whenever we encrypt or decrypt messages, get the symmetric key
+    async function getSymmetricKey(room_id){
+        const db = await openDB();
+        const transaction = db.transaction(["SymmetricKeys"], "readonly");
+        const store = transaction.objectStore("SymmetricKeys");
+        const request = store.get(room_id);
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => {
+                if (request.result) {
+                    resolve(window.crypto.subtle.importKey(
+                        "jwk",
+                        request.result.key,
+                        {
+                            name: "AES-GCM",
+                            length: 256
+                        },
+                        true,
+                        ["encrypt", "decrypt"]
+                    ));
+                } else {
+                    reject("No key found");
+                }
+            };
+            request.onerror = () => {
+                reject("Failed to retrieve key");
+            };
+        });
+    }
+
+    // Helper function to convert a base64 string to ArrayBuffer
+    function base64ToArrayBuffer(base64) {
+        var binary_string = window.atob(base64);
+        var len = binary_string.length;
+        var bytes = new Uint8Array(len);
+        for (var i = 0; i < len; i++)        {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
     }
 
     

@@ -9,6 +9,7 @@ from flask import session
 from flask_session import Session
 from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 from datetime import timedelta
 from functools import wraps
 from sqlalchemy.orm import sessionmaker
@@ -33,13 +34,8 @@ app.config['SECRET_KEY'] = secrets.token_hex()
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
-
-# Configuration for Session object
-app.config['SESSION_TYPE'] = 'SQLAlchemy'
-
-Session(app) # Initialise session
-
 socketio = SocketIO(app)
 
 # don't remove this!!
@@ -64,7 +60,7 @@ def sanitize_input(input):
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "username" not in flask_session: 
+        if "username" not in session:
             return redirect(url_for('login')) 
         return f(*args, **kwargs)
     return decorated_function
@@ -75,11 +71,13 @@ def login_required(f):
 def index():
     return render_template("index.jinja")
 
+
 # login page
 @app.route("/login")
 def login():
     
     return render_template("login.jinja")
+
 
 # handles a post request when the user clicks the log in button
 @app.route("/login/user", methods=["POST"])
@@ -98,8 +96,8 @@ def login_user():
 
     try:
         if user and bcrypt.check_password_hash(user.password, client_hashed_password):
-            flask_session.clear()
-            flask_session['username'] = username
+            session.clear()
+            session['username'] = username
             return url_for('home', username=username)
 
         else:
@@ -136,8 +134,8 @@ def signup_user():
 
         print(f"User {username} created, password: {hashed_password}, key: {public_key}")
         
-        flask_session.clear()
-        flask_session['username'] = db.get_user(username).username
+        session.clear()
+        session['username'] = db.get_user(username).username
         return url_for('home', username=username)
     return "Error: User already exists!"
 
@@ -187,6 +185,7 @@ def home():
         db_session.close()
 
     return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests, sent_requests=sent_requests_list)
+
 
 @app.route("/add_friend", methods=['POST'])
 @login_required
@@ -309,7 +308,6 @@ def accept_friend_request():
         db_session.close()
 
 
-
 @app.route("/reject_friend_request", methods=['POST'])
 @login_required
 def reject_friend_request():
@@ -378,11 +376,22 @@ def get_friends():
         db_session.close()
 
 
+# encryption based methods
+@app.route("/get_public_key/<username>", methods=['GET'])
+@login_required
+def get_public_key(username):
+    user = db.get_user(username)
+    if user:
+        return jsonify({"public_key": user.public_key}), 200
+    else:
+        return jsonify({"error": "User not found"}), 404
+
+
 # route to logout
 @app.route("/logout")
 def logout():
-    flask_session.pop('username', None)  # securely remove user details
-    flask_session.clear()  # clear all session data
+    session.pop('username', None)  # securely remove user details
+    session.clear()  # clear all session data
     response = redirect(url_for('index'))
     response.headers['Clear-Site-Data'] = '"cookies"'  # Clear cookies in supporting browsers
     return response    
