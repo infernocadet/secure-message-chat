@@ -5,8 +5,8 @@ the socket event handlers are inside of socket_routes.py
 '''
 
 from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
-from flask import session as flask_session
-# from flask_talisman import Talisman
+from flask import session
+from flask_session import Session
 from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO, emit
 from datetime import timedelta
@@ -30,40 +30,17 @@ bcrypt = Bcrypt(app)
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
+
+# Configuration for Session object
+app.config['SESSION_TYPE'] = 'SQLAlchemy'
+
+Session(app) # Initialise session
+
 socketio = SocketIO(app)
-
-# csp = {
-#     'default-src': [
-#         '\'self\'',
-#         'https://172.17.148.207',
-#         'https://192.168.0.6',
-#         'unsafe-inline'
-#     ],
-#     'img-src': '*',
-#     'media-src': [
-#         '\'self\'',
-#         'https://172.17.148.207',
-#         'https://192.168.0.6'
-#     ],
-#     'script-src': [
-#         '\'self\'',
-#         'https://172.17.148.207',
-#         'https://192.168.0.6',
-#         'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js'
-#     ],
-#     'style-src': [
-#         '\'self\'',
-#         'https://172.17.148.207',
-#         'https://192.168.0.6',
-#         'unsafe-inline'
-#     ]
-# }
-
-# Talisman(app, content_security_policy=csp)
 
 # don't remove this!!
 import socket_routes
@@ -177,7 +154,7 @@ def page_not_found(_):
 def home():
 
     # get the current username from the session
-    current_user_username = flask_session.get("username")
+    current_user_username = session.get("username")
 
     if not current_user_username:
         return redirect(url_for('login'))
@@ -220,11 +197,11 @@ def add_friend():
         abort(404)    
     
     # get the current username and friend username
-    current_user_username = flask_session.get("username")
+    current_user_username = session.get("username")
     friend_username = sanitize_input(request.json.get("friend_user"))
 
     try:
-        if current_user_username != flask_session.get("username"):
+        if current_user_username != session.get("username"):
             return redirect(url_for('login'))
     except Exception as e:
         print(e)
@@ -282,7 +259,7 @@ def accept_friend_request():
     request_id = request.json.get("request_id")
 
     # get the current username from the session
-    session_username = flask_session.get("username")
+    session_username = session.get("username")
     
     db_session = Session()
     try:
@@ -342,7 +319,7 @@ def reject_friend_request():
     request_id = request.json.get("request_id")
 
     # get the current username from the session
-    session_username = flask_session.get("username")
+    session_username = session.get("username")
     
     db_session = Session()
     try:
@@ -381,7 +358,7 @@ def reject_friend_request():
 def get_friends():
 
     # obtain current username from session
-    current_user_username = flask_session.get("username")
+    current_user_username = session.get("username")
 
     # open a session to database
     db_session = Session()
