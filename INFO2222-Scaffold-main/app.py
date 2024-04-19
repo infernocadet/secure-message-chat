@@ -29,6 +29,9 @@ from bleach import clean # for sanitizing user input
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
+# Configure Session
+# app.config['SESSION_TYPE'] = 'SQLAlchemy' 
+
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
@@ -40,6 +43,8 @@ socketio = SocketIO(app)
 
 # don't remove this!!
 import socket_routes
+
+# Session(app)
 
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
