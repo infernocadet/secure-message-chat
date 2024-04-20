@@ -228,16 +228,47 @@
     // initializes the socket
     const socket = io();
 
+    socket.on("safe-incoming", async (username, message) => {
+        const { cipherText, iv, hmac } = message;
+        const symKey = await getSymmetricKey(room_id);
+        const hmacKey = await getHMACKey(room_id);
+
+        if (!symKey || !hmacKey) {
+            console.error("Keys are not available to decrypt or verify the message.");
+            return;
+        }
+
+        if (await verifyHMAC(cipherText + iv, hmac, hmacKey)) {
+            const decryptedMessage = await decryptMessage(cipherText, new Uint8Array(iv), symKey);
+            add_message(`${username}: ${decryptedMessage}`, "black");
+        } else {
+            console.error("HMAC verification failed. Message integrity compromised.");
+        }
+    });
+
     // an incoming message arrives, we'll add the message to the message box
     socket.on("incoming", (msg, color="black") => {
         add_message(msg, color);
     })
     
     // we'll send the message to the server by emitting a "send" event
-    function send() {
+    async function send() {
         let message = $("#message").val();
         $("#message").val("");
-        socket.emit("send", username, message, room_id);  
+        if (message.trim() === "") return; // Prevent sending empty messages
+
+        const symKey = await getSymmetricKey(room_id);
+        const hmacKey = await getHMACKey(room_id);
+
+        if (!symKey || !hmacKey) {
+            console.error("Keys are not available to encrypt or sign the message.");
+            return;
+        }
+
+        const { cipherText, iv } = await encryptMessage(message, symKey);
+        const hmac = await signMessage(cipherText + iv, hmacKey);
+
+        socket.emit("safe-send", username, { cipherText, iv: Array.from(iv), hmac }, room_id);  
     } 
 
     // we emit a join room event to the server to join a room
@@ -245,21 +276,15 @@
        
         let receiver = $("#receiver").val();
 
-        // pass in the receiver of our message to the server
-        // as well as the current user's username
         socket.emit("join", username, receiver, (res) => {
-            // res is a string with the error message if the error occurs
-            // this is a pretty bad way of doing error handling, but watevs
             if (typeof res != "number") {
                 alert(res);
                 return;
             }
 
-            // set the room id variable to the room id returned by the server
             room_id = res;
             Cookies.set("room_id", room_id);
 
-            // now we'll show the input box, so the user can input their message
             $("#chat_box").hide();
             $("#input_box").show();
         });
@@ -587,13 +612,17 @@
         });
     }
 
-    function logout(){
-        window.location.href = "{{ url_for('logout') }}"
-        history.pushState(null, null, '/');
-        window.addEventListener('popstate', function(event) {
-        history.pushState(null, null, '/');
-    });
+    function logout() {
+        // Clear the browser session history
+        window.history.pushState(null, null, window.location.href);
+        window.onpopstate = function () {
+            window.history.go(1);
+        };
+
+        // Redirect to the logout URL
+        window.location.href = "{{ url_for('logout') }}";
     }
+
 
     document.getElementById('receiver').addEventListener('keyup', function(){
         let receiverInput = document.getElementById('receiver').value;
@@ -916,7 +945,7 @@
     }
 
     // function to derive a HMAC key from the symmetric key
-    async function deriveHMACKey(symmetricKey) {
+    async function deriveHMACKey(symmetricKey, salt) {
         // export key to raw format
         const keyRaw = await window.crypto.subtle.exportKey("raw", symmetricKey);
 
@@ -930,7 +959,6 @@
         );
 
         // define pbkdf2 parameters
-        const salt = window.crypto.getRandomValues(new Uint8Array(16)); // Should be securely stored or transmitted along with the HMAC key
         const iterations = 50000; // Higher is more secure but more computationally expensive
         const deriveParams = {
             name: "PBKDF2",
@@ -953,9 +981,9 @@
 
 
     // function set up HMACkey in Storage
-    async function setupHMACKey(symmetricKey, room_id) {
+    async function setupHMACKey(symmetricKey, room_id, salt) {
         try {
-            const hmacKey = await deriveHMACKey(symmetricKey);
+            const hmacKey = await deriveHMACKey(symmetricKey, salt);
             console.log("HMAC Key Derived and Ready for use.");
 
             // Export the HMAC key if you need to store it
@@ -1007,23 +1035,93 @@
             };
         });
     }
+
     // write a socket listener which listens for setupHMACKeys event, to call the setupHMACKey function (broadcasted to all users in room)
     socket.on("setupHMACKeys", async function(data) {
 
         const room_id = data.room_id;
+        const salt = Uint8Array.from(atob(data.salt), c => c.charCodeAt(0));
         const current_username = username
         console.log(username + " from Room " + room_id + " has received setupHMACKeys event.");
         try {
             const symKey = await getSymmetricKey(room_id);
+            if (!symKey) {
+                console.error("Symmetric key not found. Cannot set up HMAC key.");
+                return;
+            }
             console.log(current_username + ": Retrieved symmetric key. Now setting up HMAC key.")
-            await setupHMACKey(symKey, room_id);
+            await setupHMACKey(symKey, room_id, salt);
         } catch (error) {
             console.error("Failed to set up HMAC key", error)
         }
     });
 
+    // function to encrypt messages using AES-GCM
+    async function encryptMessage(message, symKey) {
+        const encoder = new TextEncoder();
+        const encodedMessage = encoder.encode(message);
 
+        // generate a random IV for each encryption
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
+        const encryptedMessage = await window.crypto.subtle.encrypt(
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
+            symKey,
+            encodedMessage
+        );
+
+        // convert arraybuffer to base64
+        const cipherText = btoa(String.fromCharCode(...new Uint8Array(encryptedMessage)));
+
+        return { cipherText, iv };
+    }
+
+    // function to decrypt messages using AES-GCM
+    async function decryptMessage(cipherText, iv, symKey) {
+        const decoder = new TextDecoder();
+        const encryptedBuffer = Uint8Array.from(atob(cipherText), c => c.charCodeAt(0));
+
+        const decryptedContent = await window.crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
+            symKey,
+            encryptedBuffer
+        );
+
+        const decryptedMessage = decoder.decode(decryptedContent);
+        return decryptedMessage;
+    }
     
+    // function to sign a message using HMAC
+    async function signMessage(data, hmacKey) {
+        const encoder = new TextEncoder();
+        const dataEncoded = encoder.encode(data);
+
+        const hmacBuffer = await window.crypto.subtle.sign(
+            "HMAC",
+            hmacKey,
+            dataEncoded
+        );
+
+        // convert the hmac buffer to a hex string for transmission
+        return Array.from(new Uint8Array(hmacBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // function to verify a message using HMAC
+    async function verifyHMAC(data, hmac, hmacKey){
+        const valid = await window.crypto.subtle.verify(
+            "HMAC",
+            hmacKey,
+            new Uint8Array(hmac.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16))),
+            new TextEncoder().encode(data)
+        );
+        return valid;
+    }
+
 </script>
 {% endblock %}

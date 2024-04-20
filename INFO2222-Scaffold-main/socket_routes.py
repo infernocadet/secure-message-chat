@@ -7,6 +7,8 @@ file containing all the routes related to socket.io
 from flask_socketio import join_room, emit, leave_room
 from flask import request
 from bleach import clean 
+import os
+import base64
 
 try:
     from __main__ import socketio
@@ -59,8 +61,12 @@ def disconnect():
 # send message event handler
 @socketio.on("send")
 def send(username, message, room_id):
-    sanitised_message = clean(message)
-    emit("incoming", (f"{username}: {sanitised_message}"), to=room_id) # to test, <script>alert('XSS Test');</script>
+    emit("incoming", (username, message), to=room_id) # to test, <script>alert('XSS Test');</script>
+
+@socketio.on("safe-send")
+def safe_send(username, message, room_id):
+    print(message)
+    emit("safe-incoming", (username, message), to=room_id)
 
 
 # Template for the message event handler
@@ -104,36 +110,7 @@ def join(sender_name, receiver_name):
         print(f"Emitting room_ready to room {room_id}, from {sender_name} with friendUsername {receiver_name}")
         emit("room_ready", {"room_id": room_id, "sender": sender_name, "receiver": receiver_name}, to=room_id)
     
-    return room_id
-
-    # # check if both participants are in the room
-    # participants = [user for user, rid in room.dict.items() if rid == room_id]
-    # if len(participants) == 2:
-    #     print(f"Sockets sees two people in here: {participants[0]} and {participants[1]}")
-    #     initiator = room.get_initiator(room_id)
-        
-    # else:
-    #     emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=room_id)
-    
-    # return room_id
-    
-    # if the user is already inside of a room 
-    # if room_id is not None:
-        
-    #     room.join_room(sender_name, room_id)
-    #     join_room(room_id)
-    #     # emit to everyone in the room except the sender
-    #     emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
-    #     # emit only to the sender
-    #     emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
-    #     return room_id
-
-    # if the user isn't inside of any room, 
-    # perhaps this user has recently left a room
-    # or is simply a new user looking to chat with someone
-    
-    
-    
+    return room_id    
 
 # leave room event handler
 @socketio.on("leave")
@@ -156,4 +133,13 @@ def letsgo(username):
     room_id = room.get_room_id(sender_name)
     emit("incoming", (f"{sender_name} has joined the room. Ready for secure communication!", "green"), to=room_id)
     emit("incoming", ("Now generating HMAC keys for both users.", "blue"), to=room_id)
-    emit("setupHMACKeys",{'room_id': room_id}, to=room_id)
+
+    # Generate a 16-byte salt
+    salt = os.urandom(16)
+    # Encode the salt in Base64 to make it easy to transmit and store
+    salt_encoded = base64.b64encode(salt).decode('utf-8')
+    
+    # Emit the setupHMACKeys event with the salt
+    emit("setupHMACKeys", {'room_id': room_id, 'salt': salt_encoded}, to=room_id)
+
+
