@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 import db
 import secrets
 from db import engine, Session
-from models import User, FriendRequest
+from models import User, FriendRequest, Message
 from shared_state import user_sessions
 from bleach import clean # for sanitizing user input
 
@@ -380,6 +380,10 @@ def get_friends():
     finally:
         db_session.close()
 
+@app.route("/get_messages/<room_id>", methods=['GET'])
+def get_messages(room_id):
+    messages = Message.query.filter_by(receiver=room_id).all()
+    return jsonify([{"sender": message.sender, "encrypted_message": message.encrypted_message, "iv": message.iv} for message in messages])
 
 # encryption based methods
 @app.route("/get_public_key/<username>", methods=['GET'])

@@ -83,6 +83,34 @@ def safe_send(username, message, room_id):
 #     db.session.commit()
 ########################################
 
+# store message to the database
+@socketio.on('store_message')
+def store_message(data):
+    username = data['username']
+    room_id = data['room_id']
+    cypher_text = data['cypher_text']
+    iv = data['iv']
+
+    # username = data.get('username')
+    # receiver = data.get('receiver')
+    # encrypted_message = data.get('encrypted_message')
+    # iv = data.get('iv')
+
+    if username and room_id and cypher_text and iv:
+    
+        new_message = db.Message(
+            sender=username, receiver=room_id, cypher_text=cypher_text, iv=iv)
+
+        db.session.add(new_message)
+        db.session.commit()
+        emit("message_stored", {"status": "success",
+             "room_id": room_id}, to=room_id)
+
+    else:
+        emit("message_stored", {
+             "status": "fail", "message": "Incomplete data received"}, to=room_id)
+
+
 # join room event handler
 # sent when the user joins a room
 @socketio.on("join")

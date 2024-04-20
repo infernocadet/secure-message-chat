@@ -77,7 +77,9 @@ class Message(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     sender: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     receiver: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    message: Mapped[str] = mapped_column(Text) 
+    cypher_text: Mapped[str] = mapped_column(Text)
+    iv: Mapped[str] = mapped_column(Text)
+    hmac: Mapped[str] = mapped_column(Text)
 
 # stateful counter used to generate the room id
 class Counter():

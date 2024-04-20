@@ -269,7 +269,7 @@
         const hmac = await signMessage(cipherText + iv, hmacKey);
 
         socket.emit("safe-send", username, { cipherText, iv: Array.from(iv), hmac }, room_id);  
-    } 
+    }
 
     // we emit a join room event to the server to join a room
     function join_room() {
@@ -1055,6 +1055,85 @@
             console.error("Failed to set up HMAC key", error)
         }
     });
+
+    // function to derive key from password for encryption
+    async function deriveKeyFromPassword(password, salt) {
+        const encoder = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            "raw",
+            encoder.encode(password),
+            { name: "PBKDF2" },
+            false,
+            ["deriveKey"]
+        );
+
+        return window.crypto.subtle.deriveKey(
+            {
+                name: "PBKDF2",
+                salt: salt,
+                iterations: 100000,
+                hash: "SHA-256"
+            },
+            keyMaterial,
+            { name: "AES-GCM", length: 256 },
+            true,
+            ["encrypt", "decrypt"]
+        );
+    }
+
+
+    // function to encrypt messages before being sent to the server storage
+    async function encryptMessage(message, key){
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encoder = new TextEncoder();
+        const encodeMessage = new TextEncoder();
+        const encodedMessage = encoder.encode(message);
+        const encryptedMessage = await window.crypto.subtle.encrypt(
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
+            key,
+            encodedMessage
+        );
+
+        return {
+            iv: Array.from(iv),
+            data: btoa(String.fromCharCode(...new Uint8Array(encryptedMessage)))
+        }
+    }
+
+    // function to decrypt messages from the server storage
+    async function decryptMessage(data, key){
+        const iv = new Uint8Array(data.iv);
+        const encryptedMessage = Uint8Array(atob(data.data).split('').map(character => character.charCodeAt(0)));
+        const decryptedMessage = await window.crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
+            key,
+            encryptedMessage
+        );
+
+        const decoder = new TextDecoder();
+        return decoder.decode(decryptedMessage);
+    }
+
+    // function to encrypt and store message to the server
+    async function encryptAndStoreMessage(message, key, symKey) {
+        const {data, iv} = await encryptMessage(message, symKey);
+        socket.emit("store_message", {room_id, cipherText: data, iv});
+    }
+
+    // function to decrypt messages retrieved from Server
+    async function decryptMessageHistory(message, key) {
+        return Promise.all(message.map(async (msg) => {
+            const decryptedMessageFromServer = await decryptMessage({data: msg.encrypted_message, iv: msg.iv}, symKey);
+        }));
+    }
+
+    
 
     // function to encrypt messages using AES-GCM
     async function encryptMessage(message, symKey) {
