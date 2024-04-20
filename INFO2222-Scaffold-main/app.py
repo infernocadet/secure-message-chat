@@ -30,7 +30,7 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 # Configure Session
-# app.config['SESSION_TYPE'] = 'SQLAlchemy' 
+app.config['SESSION_TYPE'] = 'SQLAlchemy' 
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
@@ -44,7 +44,7 @@ socketio = SocketIO(app)
 # don't remove this!!
 import socket_routes
 
-# Session(app)
+Session(app)
 
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
