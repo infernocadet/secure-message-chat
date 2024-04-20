@@ -10,6 +10,7 @@ Sign up page, pretty much the same as login.
     <h1>Sign Up</h1>
     <p>Username</p>
     <input id="username"/>
+    <p id="usernameHelp" style="color: red;"></p>
     <p>Password</p>
     <div style="position: relative;">
         <input id="password" type="password" style="padding-right: 30px;"/>
@@ -64,6 +65,13 @@ Sign up page, pretty much the same as login.
             document.getElementById('signupButton').disabled = !passwordValid;
         });
 
+        document.getElementById("username").addEventListener('input', function(event) {
+            const username = event.target.value;
+            usernameValid = validateUsername(username);
+            document.getElementById('usernameHelp').textContent = usernameValid ? '' : 'Username cannot contain special characters from the following: !@#$%^&*(),.?":{}|<>';
+            document.getElementById('signupButton').disabled = !usernameValid;
+        });
+
         function validatePassword(password){
             const hasUpperCase = /[A-Z]/.test(password);
             const hasLowerCase = /[a-z]/.test(password);
@@ -73,6 +81,11 @@ Sign up page, pretty much the same as login.
             const notTooLong = password.length <= 20;
 
             return hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChars && isLongEnough && notTooLong;
+        }
+
+        function validateUsername(username){
+            const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(username);
+            return !hasSpecialChars;
         }
 
         function togglePasswordVisibility(){
