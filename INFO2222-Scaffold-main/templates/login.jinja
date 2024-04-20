@@ -12,6 +12,7 @@
     <input id="username"/>
     <p>Password</p>
     <input id="password"  type="password"/>
+    <button id="togglePassword" onclick="togglePasswordVisibility()">👁️</button>
     <button onclick="login()">Login</button>
     <p id="loginMessage" style="display: none;"></p>
 
@@ -78,6 +79,14 @@
             }
             return false;
         }
+
+        function togglePasswordVisibility() {
+                const passwordInput = document.getElementById('password');
+                const toggleButton = document.getElementById('togglePassword');
+                const isPasswordVisible = passwordInput.type === 'text';
+                passwordInput.type = isPasswordVisible ? 'password' : 'text';
+                toggleButton.textContent = isPasswordVisible ? '👁️' : '🚫';
+            }
 
         // async function to login the user when user clicks on login button
         async function login() {
