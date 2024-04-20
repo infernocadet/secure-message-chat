@@ -9,22 +9,21 @@ Secure Key Exchange: Use users' public keys to encrypt and exchange the symmetri
 3. Symmetric Encryption for Messaging
 Encrypting Messages: Use the symmetric session key to encrypt messages before sending them to the server. Ensure the use of a secure symmetric encryption algorithm such as AES.
 Decrypting Messages: When messages are retrieved, the client uses the same symmetric key to decrypt them.
+
 4. Using HMAC for Message Integrity and Authentication
 Generating MACs: Generate a HMAC for each message using part of the symmetric key or a derived key to ensure that the message has not been altered.
 Verification of MACs: Upon receiving the message, compute and verify the HMAC before decrypting to ensure integrity and authenticity.
+
 5. Secure Storage of Messages
 Encryption Before Storage: Messages should be encrypted client-side before being sent to the server for storage. The server stores only encrypted messages and never has access to decryption keys.
 Decryption After Retrieval: When a user accesses the chat, the encrypted messages are downloaded and decrypted client-side.
+
 6. Secure Session Establishment
 Session Initialization: When a user logs in and accesses a chat, initiate a session key exchange to securely decrypt the message history.
 Session Security: Implement measures such as session timeouts and re-authentication mechanisms to ensure the security of the session keys and the session itself.
-7. Security Considerations for User Password Changes
-Re-encryption of Keys: If a user changes their password, ensure mechanisms are in place to re-encrypt the session keys or any other keys derived from the user's password.
-8. Handling Lost Passwords
-Password Recovery: Since losing a password means losing access to the derived encryption keys, consider implementing a secure password recovery process that involves re-encrypting stored data with a new key derived from the new password, possibly involving secure user verification steps.
-9. Audit and Compliance
-Logging and Monitoring: Ensure that all key exchanges and access to chat sessions are logged securely for audit purposes while maintaining the confidentiality of message contents.
-Compliance Checks: Regularly verify compliance with relevant data protection laws and encryption standards.
+
+
+
 10. User Interface and Experience
 Clear Indicators: Provide users with clear indicators of encryption security, such as notifications when encrypted sessions are established or if encryption fails.
 Ease of Use: Ensure that the encryption processes do not hinder the user experience, aiming to make security measures as transparent as possible to the user.
@@ -53,3 +52,29 @@ window 2 (incognito)
 
 window 1 - chrome
 window 2 - safari
+
+Message Encryption and Authentication Process
+Key Derivation: Both User A and User B derive the HMAC key (H) from the shared symmetric key (S) using a KDF.
+
+Encryption:
+
+User A prepares the plaintext message (M) for transmission.
+User A generates a random Initialization Vector (IV).
+User A encrypts M using the symmetric key (S) and IV, resulting in the ciphertext (C).
+Compute HMAC:
+
+User A computes the HMAC of the concatenation of C and IV using the HMAC key (H).
+Transmission:
+
+User A sends C, the IV, and the HMAC to User B.
+Message Reception and Verification Process
+Receive Data: User B receives C, IV, and HMAC.
+
+Verify HMAC:
+
+User B computes the HMAC of C and IV using their derived HMAC key (H).
+User B compares the computed HMAC with the received HMAC. If they match, it confirms both the integrity and authenticity of the message, indicating that it has not been altered and it indeed comes from User A.
+Decryption:
+
+If the HMAC verification is successful, User B decrypts C using the symmetric key (S) and IV to retrieve the original plaintext (M).
+If the HMAC does not match, the message is discarded, signaling potential tampering or an issue in the communication.

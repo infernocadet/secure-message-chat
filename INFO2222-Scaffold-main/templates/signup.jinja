@@ -24,7 +24,7 @@ Sign up page, pretty much the same as login.
 
         window.onload = function() {
             // open or create database
-            let request = indexedDB.open("CryptoKeys", 2);
+            let request = indexedDB.open("CryptoKeys", 3);
 
             // create schema
             request.onupgradeneeded = function(event) {
@@ -38,6 +38,11 @@ Sign up page, pretty much the same as login.
                 // Create an object store for symmetric keys if it doesn't already exist
                 if (!db.objectStoreNames.contains("SymmetricKeys")) {
                     db.createObjectStore("SymmetricKeys", { keyPath: "id" });
+                }
+
+                // Create an object store for hmac keys if it doesn't already exist
+                if (!db.objectStoreNames.contains("HMACKeys")) {
+                    db.createObjectStore("HMACKeys", { keyPath: "id" });
                 }
             };
 

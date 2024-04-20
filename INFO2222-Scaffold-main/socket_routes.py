@@ -155,3 +155,5 @@ def letsgo(username):
     sender_name = username
     room_id = room.get_room_id(sender_name)
     emit("incoming", (f"{sender_name} has joined the room. Ready for secure communication!", "green"), to=room_id)
+    emit("incoming", ("Now generating HMAC keys for both users.", "blue"), to=room_id)
+    emit("setupHMACKeys",{'room_id': room_id}, to=room_id)
