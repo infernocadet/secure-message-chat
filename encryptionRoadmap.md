@@ -98,3 +98,51 @@ On the receiving end, the encrypted message needs to be decrypted to retrieve th
 ## Conclusion
 
 By following these steps, we can ensure that our messaging app provides secure and private communication for our users. Encryption plays a crucial role in protecting sensitive information from unauthorized access.
+
+> user A starts a room
+> user B joins the room
+> user A creates a symmetric key and stores it for themselves
+> user A encrypts the symmetric key with user B's public key
+> user A sends the encrypted symmetric key to user B
+> user B retrieves the encrypted symmetric key
+> user B decrypts the symmetric key with their private key
+> user B emits a "done" event to the room
+
+> triggers a "setupHMAC" event for both users
+> user A and User B create HMAC Key
+> HMAC key is derived from the symmetric key
+> HMAC key is stored for both users
+> avoids unnecessary key exchange - less attack surface
+
+# MESSAGE HISTORY
+Currently having trouble figuring out how to implement message history due to the way we've implemented encryption for the chatroom.
+When a user signs up, they generate their own public/private key pair - this stays with them for their account. The public key is stored on the server database, and private key stored in IndexedDB. 
+When User A initiates a chatroom with User B, it waits for User B to join.
+When User B joins, User A generates a symmetric key and encrypts it with User B's public key. User B decrypts the symmetric key with their private key. 
+User A and User B both store this symmetric key in an IndexedDB database, and use it to encrypt and decrypt messages sent on the server. These messages are also encrypted with a randomly generated IV.
+A HMAC key is also derived from the symmetric key and stored for both users in the IndexedDB database.
+This way, both users can calculate the HMAC of the ciphertext and attach it to the sent message, and then both users can also correctly recalculate the HMAC to verify the integrity and authenticity of the message.
+
+We are currently not too sure about how to implement message history. Is encrypting the chatroom with a symmetric key ideal? 
+
+> user A clicks on User B
+> creates a room with User A and User B in it 
+> symmetric key exchange occurs
+  > user A generates a random symmetric key when User B joins
+  > exchange and decryption of symmetric key
+  > user A and user B store these keys
+> hmac key generation occurs
+  > derived from the symmetric key
+  > user A and user B store these keys
+> when a user opens a chatroom session (initiates a previous chat with another user)
+  > message history should pop up
+  > message history should be stored, encrypted on the server
+  > message history is decrypted using PASSWORD or key derived from password
+> messages are already encrypted via symmetric key.
+> monday: user A and user B open a chatroom
+> tuesday: user A and user B open a chatroom
+> symKey A != symKey B
+
+> when a user is in a room, and they click on someone else
+  > leave current room, make new one with other user
+> id associated with the room based on who is in the room
