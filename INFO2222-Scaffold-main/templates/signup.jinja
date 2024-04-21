@@ -6,6 +6,7 @@ Sign up page, pretty much the same as login.
 
 {% extends 'base.jinja' %}
 
+
 {% block content %} 
     <h1>Sign Up</h1>
     <p>Username</p>
@@ -147,6 +148,7 @@ Sign up page, pretty much the same as login.
             }
         }
 
+        // THIS WAS FOR TESTING NOT PART OF THE FINAL PRODUCT :D - WE DO NOT SHOW PRIVATE KEYS
         function logPrivateKeyForTesting(username){
             const transaction = db.transaction(["PrivateKeyStore"], "readonly");
             const store = transaction.objectStore("PrivateKeyStore");
@@ -170,7 +172,7 @@ Sign up page, pretty much the same as login.
 
             // Store the private key securely in local storage
             await storePrivateKeyLocally(username, keyPair.privateKey);
-            logPrivateKeyForTesting(username);
+            // logPrivateKeyForTesting(username); FOR TESTING
 
             // sign up
             signup(username, password, keyPair.publicKey)

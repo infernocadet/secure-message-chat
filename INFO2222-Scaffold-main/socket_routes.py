@@ -39,6 +39,7 @@ def connect():
         return
     # socket automatically leaves a room on client disconnect
     # so on client connect, the room needs to be rejoined
+    print(f"Joining room {room_id} for {username}")
     join_room(int(room_id))
     emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
 
@@ -112,7 +113,6 @@ def join(sender_name, receiver_name):
     if existing_room and room_id and existing_room == room_id:
         if room.is_active(sender_name) and room.is_active(receiver_name):
             return "You are already connected with this user."
-
 
     if room_id is None:
         room_id = room.create_room(sender_name, receiver_name) 

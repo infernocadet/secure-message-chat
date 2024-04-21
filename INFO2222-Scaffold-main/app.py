@@ -27,7 +27,6 @@ from bleach import clean # for sanitizing user input
 # log.setLevel(logging.ERROR)
 
 app = Flask(__name__)
-bcrypt = Bcrypt(app)
 
 # Configure Session
 app.config['SESSION_TYPE'] = 'SQLAlchemy' 
@@ -40,6 +39,8 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javas
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
+
+bcrypt = Bcrypt(app)
 
 # don't remove this!!
 import socket_routes
@@ -91,8 +92,7 @@ def login_user():
         abort(404)
 
     username = sanitize_input(request.json.get("username"))
-    print(username)
-    client_hashed_password = sanitize_input(request.json.get("password"))
+    client_hashed_password = request.json.get("password")
 
     user =  db.get_user(username)
 
@@ -127,7 +127,7 @@ def signup_user():
         abort(404)
 
     username = sanitize_input(request.json.get("username"))
-    client_hashed_password = sanitize_input(request.json.get("password"))
+    client_hashed_password = request.json.get("password")
     public_key = request.json.get("publicKey")
 
     if db.get_user(username) is None:
