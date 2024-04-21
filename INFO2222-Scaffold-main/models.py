@@ -77,7 +77,8 @@ class Message(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     sender: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     receiver: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    message: Mapped[str] = mapped_column(Text) 
+    encrypted_message: Mapped[str] = mapped_column(Text)
+    iv: Mapped[str] = mapped_column(Text)
 
 # stateful counter used to generate the room id
 class Counter():
@@ -115,4 +116,11 @@ class Room():
         if user not in self.dict.keys():
             return None
         return self.dict[user]
+    
+    # gets receiver from room
+    def get_receiver_from_room(self, room_id: int):
+        for user, id in self.dict.items():
+            if id == room_id:
+                return user
+        return None
     
