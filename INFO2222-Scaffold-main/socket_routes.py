@@ -15,7 +15,7 @@ try:
 except ImportError:
     from app import socketio
 
-from models import Room
+from models import Room, Message
 
 import db
 
@@ -88,27 +88,34 @@ def safe_send(username, message, room_id):
 def store_message(data):
     username = data['username']
     room_id = data['room_id']
-    cypher_text = data['cypher_text']
+    encrypted_message = data['cipherText']
     iv = data['iv']
+
+    new_message = Message(sender=username, receiver=room.get_receiver_from_room(room_id), encrypted_message=encrypted_message, iv=iv)
+
+    db.session.add(new_message)
+    db.session.commit()
+    emit("message_stored", {"status": "success", "room_id": room_id}, to=room_id)
 
     # username = data.get('username')
     # receiver = data.get('receiver')
     # encrypted_message = data.get('encrypted_message')
     # iv = data.get('iv')
 
-    if username and room_id and cypher_text and iv:
+
+    # if username and room_id and encrypted_message and iv:
     
-        new_message = db.Message(
-            sender=username, receiver=room_id, cypher_text=cypher_text, iv=iv)
+    #     new_message = db.Message(
+    #         sender=username, receiver=room_id, encrypted_message=encrypted_message, iv=iv)
 
-        db.session.add(new_message)
-        db.session.commit()
-        emit("message_stored", {"status": "success",
-             "room_id": room_id}, to=room_id)
+    #     db.session.add(new_message)
+    #     db.session.commit()
+    #     emit("message_stored", {"status": "success",
+    #          "room_id": room_id}, to=room_id)
 
-    else:
-        emit("message_stored", {
-             "status": "fail", "message": "Incomplete data received"}, to=room_id)
+    # else:
+    #     emit("message_stored", {
+    #          "status": "fail", "message": "Incomplete data received"}, to=room_id)
 
 
 # join room event handler

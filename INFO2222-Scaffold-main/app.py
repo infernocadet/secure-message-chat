@@ -382,7 +382,7 @@ def get_friends():
 
 @app.route("/get_messages/<room_id>", methods=['GET'])
 def get_messages(room_id):
-    messages = Message.query.filter_by(receiver=room_id).all()
+    messages = Message.query.filter_by(room_id=room_id).all()
     return jsonify([{"sender": message.sender, "encrypted_message": message.encrypted_message, "iv": message.iv} for message in messages])
 
 # encryption based methods

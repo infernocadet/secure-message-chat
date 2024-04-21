@@ -1086,50 +1086,50 @@
     async function encryptMessage(message, key){
         const iv = window.crypto.getRandomValues(new Uint8Array(12));
         const encoder = new TextEncoder();
-        const encodeMessage = new TextEncoder();
-        const encodedMessage = encoder.encode(message);
-        const encryptedMessage = await window.crypto.subtle.encrypt(
+        const encoded = encoder.encode(message);
+        const encrypted = await window.crypto.subtle.encrypt(
             {
                 name: "AES-GCM",
                 iv: iv
             },
             key,
-            encodedMessage
+            encoded
         );
 
         return {
             iv: Array.from(iv),
-            data: btoa(String.fromCharCode(...new Uint8Array(encryptedMessage)))
+            data: btoa(String.fromCharCode(...new Uint8Array(encrypted)))
         }
     }
 
     // function to decrypt messages from the server storage
-    async function decryptMessage(data, key){
-        const iv = new Uint8Array(data.iv);
-        const encryptedMessage = Uint8Array(atob(data.data).split('').map(character => character.charCodeAt(0)));
-        const decryptedMessage = await window.crypto.subtle.decrypt(
+    async function decryptMessage(encryptedData, key){
+        const iv = new Uint8Array(encryptedData.iv);
+        const encrypted = Uint8Array(atob(encryptedData.data).split('').map(character => character.charCodeAt(0)));
+        const decrypted = await window.crypto.subtle.decrypt(
             {
                 name: "AES-GCM",
                 iv: iv
             },
             key,
-            encryptedMessage
+            encrypted
         );
 
         const decoder = new TextDecoder();
-        return decoder.decode(decryptedMessage);
+        return decoder.decode(decrypted);
     }
 
     // function to encrypt and store message to the server
-    async function encryptAndStoreMessage(message, key, symKey) {
-        const {data, iv} = await encryptMessage(message, symKey);
-        socket.emit("store_message", {room_id, cipherText: data, iv});
+    async function encryptAndStoreMessage(message, room_id, symKey) {
+        const {cipherText, iv} = await encryptMessage(message, symKey);
+        socket.emit("store_message", { room_id, cipherText, iv });
     }
 
     // function to decrypt messages retrieved from Server
-    async function decryptMessageHistory(message, key) {
+    async function decryptMessageHistory(message, symKey) {
         return Promise.all(message.map(async (msg) => {
-            const decryptedMessageFromServer = await decryptMessage({data: msg.encrypted_message, iv: msg.iv}, symKey);
+            const decryptedText = await decryptMessage(msg.encrypted_message, symKey, msg.iv);
+            return { ...msg, decryptedText};
         }));
     }
 
