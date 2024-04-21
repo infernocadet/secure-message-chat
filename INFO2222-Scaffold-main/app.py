@@ -394,6 +394,7 @@ def get_public_key(username):
 
 # route to logout
 @app.route("/logout")
+@login_required
 def logout():
     session.pop('username', None)  # securely remove user details
     session.clear()  # clear all session data

@@ -829,6 +829,7 @@
         return encryptedKey;
     }
 
+    // function to fetch the public key of a user
     async function fetchPublicKey(username){
         try {
             let response = await axios.get(`/get_public_key/${username}`);
@@ -978,7 +979,6 @@
 
         return hmacKey;
     }
-
 
     // function set up HMACkey in Storage
     async function setupHMACKey(symmetricKey, room_id, salt) {

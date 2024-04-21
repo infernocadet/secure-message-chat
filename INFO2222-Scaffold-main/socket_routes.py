@@ -97,18 +97,35 @@ def join(sender_name, receiver_name):
     sender = db.get_user(sender_name)
     if sender is None:
         return "Unknown sender!"
-
+    
+    existing_room = room.get_room_id(sender_name)
     room_id = room.get_room_id(receiver_name)
+
+    # terminal logging
+    print(f"Existing room: {existing_room}, room_id: {room_id}")
+
+    # if user is already in a room, prompt to leave
+    if existing_room is not None and existing_room != room_id:
+        return "You are already in another room. Please leave it first."
+
+    # if user is already in a room with them
+    if existing_room and room_id and existing_room == room_id:
+        if room.is_active(sender_name) and room.is_active(receiver_name):
+            return "You are already connected with this user."
+
+
     if room_id is None:
-        room_id = room.create_room(sender_name, receiver_name) # sets sender as the initiator
+        room_id = room.create_room(sender_name, receiver_name) 
         join_room(room_id)
         emit("waiting", {"room_id": room_id, "receiver": receiver_name}, to=room_id)
         emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=room_id)
     else:
-        room.join_room(sender_name, room_id)
-        join_room(room_id)
-        print(f"Emitting room_ready to room {room_id}, from {sender_name} with friendUsername {receiver_name}")
-        emit("room_ready", {"room_id": room_id, "sender": sender_name, "receiver": receiver_name}, to=room_id)
+        if not room.is_active(sender_name) and existing_room == room_id:
+            room.join_room(sender_name, room_id)
+            join_room(room_id)
+            print(f"Emitting room_ready to room {room_id}, from {sender_name} with friendUsername {receiver_name}")
+            emit("room_ready", {"room_id": room_id, "sender": sender_name, "receiver": receiver_name}, to=room_id)
+        
     
     return room_id    
 

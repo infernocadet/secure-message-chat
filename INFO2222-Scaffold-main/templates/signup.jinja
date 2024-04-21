@@ -62,15 +62,19 @@ Sign up page, pretty much the same as login.
             const password = event.target.value;
             passwordValid = validatePassword(password);
             document.getElementById('passwordHelp').textContent = passwordValid ? '' : 'Password must be at least 8 characters long, include uppercase, lowercase, numbers, and special characters.';
-            document.getElementById('signupButton').disabled = !passwordValid;
+            updateSignupButtonState();
         });
 
         document.getElementById("username").addEventListener('input', function(event) {
             const username = event.target.value;
             usernameValid = validateUsername(username);
             document.getElementById('usernameHelp').textContent = usernameValid ? '' : 'Username cannot contain special characters from the following: !@#$%^&*(),.?":{}|<>';
-            document.getElementById('signupButton').disabled = !usernameValid;
+            updateSignupButtonState();
         });
+
+        function updateSignupButtonState(){
+            document.getElementById('signupButton').disabled = !(usernameValid && passwordValid);
+        }
 
         function validatePassword(password){
             const hasUpperCase = /[A-Z]/.test(password);
