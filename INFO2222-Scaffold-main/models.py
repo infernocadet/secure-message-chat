@@ -82,7 +82,7 @@ class Message(Base):
 # stateful counter used to generate the room id
 class Counter():
     def __init__(self):
-        self.counter = 0
+        self.counter = 0 
     
     def get(self):
         self.counter += 1

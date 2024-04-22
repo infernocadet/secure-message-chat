@@ -52,6 +52,10 @@ def disconnect():
     if room_id is None or username is None:
         return
     
+    # calls js logout() function to clear cookies
+    session_id = user_sessions[username]
+    emit("logout", to=session_id)
+    
     # removes user from session IDs to clean up
     username_to_remove = [user for user, sid in user_sessions.items() if sid == request.sid]
     for username in username_to_remove:
@@ -89,9 +93,13 @@ def safe_send(username, message, room_id):
 @socketio.on("join")
 def join(sender_name, receiver_name):
 
+    # user who initiated the join
     sender_name = sender_name.strip()
+
+    # user invited to the join
     receiver_name = receiver_name.strip()
     
+    # check if the sender & receiver exists
     receiver = db.get_user(receiver_name)
     if receiver is None:
         return "Unknown receiver!"
@@ -99,35 +107,37 @@ def join(sender_name, receiver_name):
     if sender is None:
         return "Unknown sender!"
     
-    existing_room = room.get_room_id(sender_name)
-    room_id = room.get_room_id(receiver_name)
+    # get the current room_ids of sender and receiver, if any
+    sender_room_id = room.get_room_id(sender_name) # always be none at the start (right now theres a bug where it isnt, causing multiple joins at the start)
+    receiver_room_id = room.get_room_id(receiver_name)
 
     # terminal logging
-    print(f"Existing room: {existing_room}, room_id: {room_id}")
+    print(f"Existing room: {sender_room_id}, room_id: {receiver_room_id}")
 
     # if user is already in a room, prompt to leave
-    if existing_room is not None and existing_room != room_id:
+    if sender_room_id is not None and sender_room_id != receiver_room_id:
         return "You are already in another room. Please leave it first."
 
     # if user is already in a room with them
-    if existing_room and room_id and existing_room == room_id:
+    if sender_room_id and receiver_room_id and sender_room_id == receiver_room_id:
         if room.is_active(sender_name) and room.is_active(receiver_name):
-            return "You are already connected with this user."
+            return "You are already connected with this user." 
 
-    if room_id is None:
-        room_id = room.create_room(sender_name, receiver_name) 
-        join_room(room_id)
-        emit("waiting", {"room_id": room_id, "receiver": receiver_name}, to=room_id)
-        emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=room_id)
+    # if the receiver is not in a room, then sender creates a room, an allocates that room_id to both of them.
+    # sender then joins that room.
+    if receiver_room_id is None:
+        receiver_room_id = room.create_room(sender_name, receiver_name) 
+        join_room(receiver_room_id)
+        emit("waiting", {"room_id": receiver_room_id, "receiver": receiver_name}, to=receiver_room_id)
+        emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=receiver_room_id)
     else:
-        if not room.is_active(sender_name) and existing_room == room_id:
-            room.join_room(sender_name, room_id)
-            join_room(room_id)
-            print(f"Emitting room_ready to room {room_id}, from {sender_name} with friendUsername {receiver_name}")
-            emit("room_ready", {"room_id": room_id, "sender": sender_name, "receiver": receiver_name}, to=room_id)
-        
+        if not room.is_active(sender_name) and sender_room_id == receiver_room_id:
+            room.join_room(sender_name, receiver_room_id)
+            join_room(receiver_room_id)
+            print(f"Emitting room_ready to room {receiver_room_id}, from {sender_name} with friendUsername {receiver_name}")
+            emit("room_ready", {"room_id": receiver_room_id, "sender": sender_name, "receiver": receiver_name}, to=receiver_room_id)
     
-    return room_id    
+    return receiver_room_id    
 
 # leave room event handler
 @socketio.on("leave")

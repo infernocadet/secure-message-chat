@@ -240,7 +240,7 @@
 
         if (await verifyHMAC(cipherText + iv, hmac, hmacKey)) {
             const decryptedMessage = await decryptMessage(cipherText, new Uint8Array(iv), symKey);
-            add_message(`${username}: ${decryptedMessage}`, "black");
+            add_message(`${username}: ${cipherText}`, "black");
         } else {
             console.error("HMAC verification failed. Message integrity compromised.");
         }
@@ -333,16 +333,23 @@
             friend_user: friendUsername
         })
         .then(function (response) {
-
-            console.log(response.data);
-            document.getElementById('friendRequestMessage').textContent = "Friend request sent!";
-            document.getElementById('friendRequestMessage').style.display = 'block';
+            // check if response is json
+            if (response.data && typeof response.data === 'object') {
+                window.location.href = response.data.url;
+            } else {
+                console.log(response.data);
+                document.getElementById('friendRequestMessage').textContent = "Friend request sent!";
+                document.getElementById('friendRequestMessage').style.display = 'block';
+            }
         })
         .catch(function (error) {
             console.error('Error:', error)
 
             // check if error response contains data
-            if (error.response && error.response.data){
+            if (error.response && error.response.status === 401 && error.response.data.redirect) {
+                // Handle redirect from catch block as well
+                window.location.href = error.response.data.url;
+            } else if (error.response && error.response.data){
                 // display error message
                 document.getElementById('friendRequestMessage').textContent = error.response.data.error;
             } else {
@@ -597,7 +604,6 @@
     // function to join a room with a friend
     async function click_join(friendUsername) {
         // use friend's username to join room
-        console.log(username + "beginning click_join");
         socket.emit("join", username, friendUsername, (res) => { 
             if (typeof res != "number") {
                 alert(res); // alert of error
@@ -612,6 +618,12 @@
         });
     }
 
+    // when window is closed, user logs out
+    window.addEventListener('beforeunload', function(event) {
+        navigator.sendBeacon("{{ url_for('logout') }}");
+    });
+
+    // function to logout
     function logout() {
         // Clear the browser session history
         window.history.pushState(null, null, window.location.href);
@@ -623,12 +635,13 @@
         window.location.href = "{{ url_for('logout') }}";
     }
 
-
+    // disable chat button if no receiver is entered
     document.getElementById('receiver').addEventListener('keyup', function(){
         let receiverInput = document.getElementById('receiver').value;
         let chatButton = document.getElementById('chatButton').disabled = !receiverInput.trim();
     })
 
+    // function to handle chat button click
     function chat_button_clicked(){
         let receiver = $("#receiver").val();
         if (!receiver) {

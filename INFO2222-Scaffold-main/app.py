@@ -33,10 +33,9 @@ app.config['SESSION_TYPE'] = 'SQLAlchemy'
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=15)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
 
@@ -67,7 +66,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "username" not in session:
-            return redirect(url_for('login')) 
+            print("got here")
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -102,6 +102,7 @@ def login_user():
     try:
         if user and bcrypt.check_password_hash(user.password, client_hashed_password):
             session.clear()
+            session.permanent = True
             session['username'] = username
             return url_for('home', username=username)
 
@@ -140,6 +141,7 @@ def signup_user():
         print(f"User {username} created, password: {hashed_password}, key: {public_key}")
         
         session.clear()
+        session.permanent = True
         session['username'] = db.get_user(username).username
         return url_for('home', username=username)
     return "Error: User already exists!"
@@ -203,6 +205,7 @@ def add_friend():
     # get the current username and friend username
     current_user_username = session.get("username")
     friend_username = sanitize_input(request.json.get("friend_user"))
+    print(f"{current_user_username} user name ")
 
     try:
         if current_user_username != session.get("username"):
@@ -264,6 +267,7 @@ def accept_friend_request():
 
     # get the current username from the session
     session_username = session.get("username")
+
     
     db_session = Session()
     try:
@@ -393,14 +397,16 @@ def get_public_key(username):
 
 
 # route to logout
-@app.route("/logout")
+@app.route("/logout", methods=['GET', 'POST'])
 @login_required
 def logout():
     session.pop('username', None)  # securely remove user details
     session.clear()  # clear all session data
-    response = redirect(url_for('index'))
-    response.headers['Clear-Site-Data'] = '"cookies"'  # Clear cookies in supporting browsers
-    return response    
+    if request.method == "GET":
+        response = redirect(url_for('index'))
+        response.headers['Clear-Site-Data'] = '"cookies"'  # Clear cookies in supporting browsers
+        return response
+    return '', 204 # no content to return for a beacon request    
 
 
 @app.after_request
