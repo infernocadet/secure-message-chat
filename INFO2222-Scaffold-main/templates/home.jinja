@@ -333,23 +333,16 @@
             friend_user: friendUsername
         })
         .then(function (response) {
-            // check if response is json
-            if (response.data && typeof response.data === 'object') {
-                window.location.href = response.data.url;
-            } else {
-                console.log(response.data);
-                document.getElementById('friendRequestMessage').textContent = "Friend request sent!";
-                document.getElementById('friendRequestMessage').style.display = 'block';
-            }
+
+            console.log(response.data);
+            document.getElementById('friendRequestMessage').textContent = "Friend request sent!";
+            document.getElementById('friendRequestMessage').style.display = 'block';
         })
         .catch(function (error) {
             console.error('Error:', error)
 
             // check if error response contains data
-            if (error.response && error.response.status === 401 && error.response.data.redirect) {
-                // Handle redirect from catch block as well
-                window.location.href = error.response.data.url;
-            } else if (error.response && error.response.data){
+            if (error.response && error.response.data){
                 // display error message
                 document.getElementById('friendRequestMessage').textContent = error.response.data.error;
             } else {
