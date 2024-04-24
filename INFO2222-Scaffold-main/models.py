@@ -9,75 +9,7 @@ Prisma docs also looks so much better in comparison
 
 or use SQLite, if you're not into fancy ORMs (but be mindful of Injection attacks :) )
 '''
-
-from sqlalchemy import String, Table, Column, Integer, ForeignKey, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from typing import Dict, List
-
-# for friends database, using Table, Column, Integer, ForeignKey & relationship
-
-# data models
-class Base(DeclarativeBase):
-    pass
-
-# helper friends table, to link users together for a many-to-many relationship
-# columns are composite keys to ensure not null and unique pairs
-# user_id and friend_id are foreign keys which point to the main user.username
-friend_table = Table('friends', Base.metadata, 
-    Column('user_id', String, ForeignKey('user.username'), primary_key=True),
-    Column('friend_id', String, ForeignKey('user.username'), primary_key=True)
-)
-
-
-# model to store user information
-class User(Base):
-    __tablename__ = "user"
-    
-    # looks complicated but basically means
-    # I want a username column of type string,
-    # and I want this column to be my primary key
-    # then accessing john.username -> will give me some data of type string
-    # in other words we've mapped the username Python object property to an SQL column of type String 
-    username: Mapped[str] = mapped_column(String, primary_key=True)
-    password: Mapped[str] = mapped_column(String)
-    public_key: Mapped[str] = mapped_column(Text, nullable=True) # Storing public key as text
-
-    # establishing relationship with user model. joins with the friend_table.
-    # back_populates ensures that adding friends is bi-directional
-    friends: Mapped[List["User"]] = relationship(
-        "User",
-        secondary=friend_table,
-        primaryjoin=username == friend_table.c.user_id,
-        secondaryjoin=username == friend_table.c.friend_id,
-        back_populates="friends"
-    )
-
-    sent_requests: Mapped[List["FriendRequest"]] = relationship(
-        "FriendRequest",
-        foreign_keys="[FriendRequest.sender_id]",
-        backref="sender"
-    )
-    received_requests: Mapped[List["FriendRequest"]] = relationship(
-        "FriendRequest",
-        foreign_keys="[FriendRequest.receiver_id]",
-        backref="receiver"
-    )
-
-class FriendRequest(Base):
-    __tablename__ = "friendrequests"
-    # in the case we want to track if a user is spamming requests
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    sender_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    receiver_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    status: Mapped[str] = mapped_column(String) # ["rejected", "pending", "accepted"]   
-
-# Keep storage of message history
-class Message(Base):
-    __tablename__ = "message"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    sender: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    receiver: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    message: Mapped[str] = mapped_column(Text) 
+from typing import Dict
 
 # stateful counter used to generate the room id
 class Counter():
@@ -95,12 +27,27 @@ class Room():
         self.dict: Dict[str, int] = {}
         self.active_participants: Dict[int, set] = {}
 
-    def create_room(self, sender: str, receiver: str) -> int:
+    def create_room(self, session, sender: str, receiver: str) -> int:
+        from db import create_room_in_db, find_room_with_users
+
+        # check if there is an existing room with the two users
+        existing_room_id = find_room_with_users(session, sender, receiver)
+        if existing_room_id:
+            self.dict[sender] = existing_room_id
+            self.dict[receiver] = existing_room_id
+            return existing_room_id
+
+        # otherwise make a new room
         room_id = self.counter.get()
         self.dict[sender] = room_id
         self.dict[receiver] = room_id
         self.active_participants[room_id] = set()
+
+        # handle database insertion
+        create_room_in_db(session, room_id, sender, receiver)
+
         return room_id
+
     
     def join_room(self,  sender: str, room_id: int) -> int:
         self.dict[sender] = room_id
@@ -124,4 +71,6 @@ class Room():
     def is_active(self, user: str):
         room_id = self.get_room_id(user)
         return room_id in self.active_participants and user in self.active_participants[room_id]
+    
+
     

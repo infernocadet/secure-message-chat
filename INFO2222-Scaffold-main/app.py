@@ -14,9 +14,10 @@ from datetime import timedelta
 from functools import wraps
 from sqlalchemy.orm import sessionmaker
 import db
+from db import User, FriendRequest
 import secrets
 from db import engine, Session
-from models import User, FriendRequest
+from models import Room
 from shared_state import user_sessions
 from bleach import clean # for sanitizing user input
 
@@ -33,9 +34,9 @@ app.config['SESSION_TYPE'] = 'SQLAlchemy'
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
 

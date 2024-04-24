@@ -126,7 +126,7 @@ def join(sender_name, receiver_name):
     # if the receiver is not in a room, then sender creates a room, an allocates that room_id to both of them.
     # sender then joins that room.
     if receiver_room_id is None:
-        receiver_room_id = room.create_room(sender_name, receiver_name) 
+        receiver_room_id = room.create_room(room, sender_name, receiver_name) 
         join_room(receiver_room_id)
         emit("waiting", {"room_id": receiver_room_id, "receiver": receiver_name}, to=receiver_room_id)
         emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=receiver_room_id)
