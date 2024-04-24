@@ -35,7 +35,7 @@ app.config['SESSION_TYPE'] = 'SQLAlchemy'
 app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=15)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
 
