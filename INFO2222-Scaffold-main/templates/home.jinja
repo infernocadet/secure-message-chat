@@ -240,7 +240,7 @@
 
         if (await verifyHMAC(cipherText + iv, hmac, hmacKey)) {
             const decryptedMessage = await decryptMessage(cipherText, new Uint8Array(iv), symKey);
-            add_message(`${username}: ${cipherText}`, "black");
+            add_message(`${username}: ${decryptedMessage}`, "black");
         } else {
             console.error("HMAC verification failed. Message integrity compromised.");
         }
@@ -667,7 +667,7 @@
         fetchFriends().then(() => {
             // check if receiver is already a friend
             if (isFriend(receiver)){
-                join_room();
+                alert("Please click on their username in the \"Friends\" section to start a chat.");
             } else {
                 // if not, try adding them as a friend.
                 // i should've made the previous add friend function callable, but i'm lazy
