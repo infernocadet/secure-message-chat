@@ -3,6 +3,8 @@ db
 database file, containing all the logic to interface with the sql database
 '''
 
+from flask import jsonify
+import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from models import *
@@ -31,3 +33,18 @@ def insert_user(username: str, password: str, public_key: str):
 def get_user(username: str):
     with Session(engine) as session:
         return session.get(User, username)
+
+# save chat message to database
+def save_msg(sender: str, receiver: str, message: str):
+    with Session(engine) as session:
+        msg = Message(sender=sender, receiver=receiver, message=message['cipherText'], iv=json.dumps(
+            message['iv']), hmac=message['hmac'])
+        session.add(msg)
+        session.commit()
+
+# get history message from database
+def get_history_msg(username):
+    with Session(engine) as session:
+        msg = session.query(Message).filter_by(
+            sender=username, receiver=username).all()
+        return msg

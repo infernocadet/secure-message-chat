@@ -78,6 +78,17 @@ class Message(Base):
     sender: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     receiver: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     message: Mapped[str] = mapped_column(Text) 
+    iv: Mapped[str] = mapped_column(Text)
+    hmac: Mapped[str] = mapped_column(Text)
+
+    def to_dict(self):
+        return {
+            'sender': self.sender,
+            'receiver': self.receiver,
+            'message': self.message,
+            'iv': self.iv,
+            'hmac': self.hmac
+        }
 
 # stateful counter used to generate the room id
 class Counter():

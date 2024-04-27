@@ -5,7 +5,7 @@ file containing all the routes related to socket.io
 
 
 from flask_socketio import join_room, emit, leave_room
-from flask import request
+from flask import request, jsonify
 from bleach import clean 
 import os
 import base64
@@ -42,6 +42,13 @@ def connect():
     print(f"Joining room {room_id} for {username}")
     join_room(int(room_id))
     emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
+
+    print("HISTORY_LOG")
+    history = db.get_history_msg(username)
+    json_data = [msg.to_dict() for msg in history]
+    print(json_data)
+    if json_data is not []:
+        emit("history-msg", json_data, to=int(room_id))
 
 # event when client disconnects
 # quite unreliable use sparingly

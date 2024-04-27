@@ -250,6 +250,28 @@
     socket.on("incoming", (msg, color="black") => {
         add_message(msg, color);
     })
+
+    // get users saved history messages to show in chat
+    socket.on("history-msg", async (msg) => {
+
+            const symKey = await getSymmetricKey(room_id);
+            const hmacKey = await getHMACKey(room_id);
+            if (!symKey || !hmacKey) {
+                console.error("Keys are not available to decrypt or verify the message.");
+                return;
+            }
+
+            for (let i = 0; i < msg.length; i++) {
+                const msg_iv = JSON.parse(msg[i].iv);   // Convert from string to list
+                if (await verifyHMAC(msg[i].message + msg_iv, msg[i].hmac, hmacKey)) {
+                    //const decryptedMessage = await decryptMessage(msg[i].message, new Uint8Array(msg_iv), symKey);
+                    add_message(`${msg[i].sender}: ${msg[i].message}`, "black");
+                }
+                else {
+                    console.error("HMAC verification failed. Message integrity compromised.");
+                }
+            }
+        });
     
     // we'll send the message to the server by emitting a "send" event
     async function send() {
