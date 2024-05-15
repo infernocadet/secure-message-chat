@@ -19,7 +19,9 @@ Sign up page, pretty much the same as login.
     </div>
     <p id="passwordHelp" style="color: red;"></p>
     <button id="signupButton" disabled>Sign up</button>
-
+    <div>
+        <a href="{{ url_for('login') }}">Already have an account? Log in here</a>
+    </div>
     <script>
     
         let db;

@@ -34,17 +34,8 @@ def get_user(username: str):
     with Session(engine) as session:
         return session.get(User, username)
 
-# save chat message to database
-def save_msg(sender: str, receiver: str, message: str):
-    with Session(engine) as session:
-        msg = Message(sender=sender, receiver=receiver, message=message['cipherText'], iv=json.dumps(
-            message['iv']), hmac=message['hmac'])
-        session.add(msg)
-        session.commit()
 
-# get history message from database
-def get_history_msg(username):
+def get_friends(username: str):
     with Session(engine) as session:
-        msg = session.query(Message).filter_by(
-            sender=username, receiver=username).all()
-        return msg
+        user = session.get(User, username)
+        return user.friends

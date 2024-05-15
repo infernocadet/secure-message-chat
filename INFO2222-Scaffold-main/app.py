@@ -306,6 +306,11 @@ def accept_friend_request():
         if receiver_session_id:
             socketio.emit("update_friends_list", {'new_friend': sender.username}, room=receiver_session_id)
 
+        # emit online status to new friends
+        if sender_session_id:
+            socketio.emit("friend_online", {"username": receiver.username}, room=sender_session_id)
+        if receiver_session_id:
+            socketio.emit("friend_online", {"username": sender.username}, room=receiver_session_id)
 
         return jsonify({"success": "Friend request accepted", "newFriendUsername": sender.username}), 200
 
@@ -400,6 +405,19 @@ def get_public_key(username):
 @app.route("/logout", methods=['GET', 'POST'])
 @login_required
 def logout():
+    username = session.get('username')
+    if username:
+        session_id = user_sessions.get(username)
+        if session_id:
+            # Emit offline event to all friends
+            active_user_friends = db.get_friends(username)
+            for friend in active_user_friends:
+                if friend.username in user_sessions:
+                    socketio.emit("friend_offline", {"username": username}, room=user_sessions[friend.username])
+            # Emit to the user's own session to clear cookies (if needed)
+            socketio.emit("logout", to=session_id)
+            
+
     session.pop('username', None)  # securely remove user details
     session.clear()  # clear all session data
     if request.method == "GET":

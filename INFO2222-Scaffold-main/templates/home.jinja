@@ -84,6 +84,22 @@
         color: #000;
     }
 
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-left: 5px;
+    }
+
+    .online {
+        background-color: green;
+    }
+
+    .offline {
+        background-color: red;
+    }
+
 </style>
 
 <nav>
@@ -102,7 +118,7 @@
                 <ul id="friendsList">
                     {% for item in friends %}
                         <li id="friend-{{ item.username }}" onclick="click_join('{{ item.username }}')">
-                            {{ item.username }}
+                            {{ item.username }} <span id="status-{{ item.username }}" class="status-indicator offline"></span>
                         </li>
                     {% endfor %}
                 </ul>
@@ -228,6 +244,10 @@
     // initializes the socket
     const socket = io();
 
+    // show that the user is online
+    socket.emit("online", username);
+    console.log(username + " is online");
+
     socket.on("safe-incoming", async (username, message) => {
         const { cipherText, iv, hmac } = message;
         const symKey = await getSymmetricKey(room_id);
@@ -250,28 +270,6 @@
     socket.on("incoming", (msg, color="black") => {
         add_message(msg, color);
     })
-
-    // get users saved history messages to show in chat
-    socket.on("history-msg", async (msg) => {
-
-            const symKey = await getSymmetricKey(room_id);
-            const hmacKey = await getHMACKey(room_id);
-            if (!symKey || !hmacKey) {
-                console.error("Keys are not available to decrypt or verify the message.");
-                return;
-            }
-
-            for (let i = 0; i < msg.length; i++) {
-                const msg_iv = JSON.parse(msg[i].iv);   // Convert from string to list
-                if (await verifyHMAC(msg[i].message + msg_iv, msg[i].hmac, hmacKey)) {
-                    //const decryptedMessage = await decryptMessage(msg[i].message, new Uint8Array(msg_iv), symKey);
-                    add_message(`${msg[i].sender}: ${msg[i].message}`, "black");
-                }
-                else {
-                    console.error("HMAC verification failed. Message integrity compromised.");
-                }
-            }
-        });
     
     // we'll send the message to the server by emitting a "send" event
     async function send() {
@@ -330,6 +328,25 @@
         box.append(child);
     }
 
+        // handling friend online status update
+    socket.on("friend_online", function(data){
+        let friendUsername = data.username;
+        let statusIndicator = document.getElementById('status-' + friendUsername);
+        if (statusIndicator){
+            statusIndicator.classList.remove('offline');
+            statusIndicator.classList.add('online');
+        }
+    });
+
+    // handling friend offline status update
+    socket.on("friend_offline", function(data){
+        let friendUsername = data.username;
+        let statusIndicator = document.getElementById('status-' + friendUsername);
+        if (statusIndicator) {
+            statusIndicator.classList.remove('online');
+            statusIndicator.classList.add('offline');
+        }
+    });
     
 
     // adding friend function
@@ -469,10 +486,22 @@
 
         // add friend into the list
         let newFriendItem = document.createElement('li');
-        newFriendItem.textContent = newFriendUsername;
         newFriendItem.id = "friend-" + newFriendUsername;
         newFriendItem.setAttribute('onclick', `click_join('${newFriendUsername}')`); // Bind click event inline
+        
+        // add username and status indicator
+        let usernameText = document.createTextNode(newFriendUsername + " ");
+        newFriendItem.appendChild(usernameText);
+
+        // create and append the status indicator
+        let statusIndicator = document.createElement('span');
+        statusIndicator.id = "status-" + newFriendUsername;
+        statusIndicator.className = "status-indicator offline";
+        newFriendItem.appendChild(statusIndicator);
+        
+        // append new friend to the list
         friendsList.appendChild(newFriendItem);
+        socket.emit('online', username)
         
     });
 
@@ -1150,6 +1179,8 @@
         );
         return valid;
     }
+
+
 
 </script>
 {% endblock %}

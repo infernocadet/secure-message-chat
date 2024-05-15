@@ -71,25 +71,6 @@ class FriendRequest(Base):
     receiver_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     status: Mapped[str] = mapped_column(String) # ["rejected", "pending", "accepted"]   
 
-# Keep storage of message history
-class Message(Base):
-    __tablename__ = "message"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    sender: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    receiver: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
-    message: Mapped[str] = mapped_column(Text) 
-    iv: Mapped[str] = mapped_column(Text)
-    hmac: Mapped[str] = mapped_column(Text)
-
-    def to_dict(self):
-        return {
-            'sender': self.sender,
-            'receiver': self.receiver,
-            'message': self.message,
-            'iv': self.iv,
-            'hmac': self.hmac
-        }
-
 # stateful counter used to generate the room id
 class Counter():
     def __init__(self):

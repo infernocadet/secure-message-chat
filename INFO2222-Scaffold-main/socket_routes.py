@@ -43,32 +43,26 @@ def connect():
     join_room(int(room_id))
     emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
 
-    print("HISTORY_LOG")
-    history = db.get_history_msg(username)
-    json_data = [msg.to_dict() for msg in history]
-    print(json_data)
-    if json_data is not []:
-        emit("history-msg", json_data, to=int(room_id))
-
 # event when client disconnects
 # quite unreliable use sparingly
 @socketio.on('disconnect')
 def disconnect():
     username = request.cookies.get("username")
+    print(f"{username} disconnected")
     room_id = request.cookies.get("room_id")
     if room_id is None or username is None:
         return
-    
-    # calls js logout() function to clear cookies
-    session_id = user_sessions[username]
-    emit("logout", to=session_id)
-    
-    # removes user from session IDs to clean up
-    username_to_remove = [user for user, sid in user_sessions.items() if sid == request.sid]
-    for username in username_to_remove:
+      
+    if username in user_sessions:
         del user_sessions[username]
+        # emit to friends that user is offline
+        active_user_friends = db.get_friends(username)
+        for friend in active_user_friends:
+            if friend.username in user_sessions:
+                emit("friend_offline", {"username": username}, room=user_sessions[friend.username])
 
     emit("incoming", (f"{username} has disconnected", "red"), to=int(room_id))
+    leave_room(int(room_id))
 
 # send message event handler
 @socketio.on("send")
@@ -79,21 +73,6 @@ def send(username, message, room_id):
 def safe_send(username, message, room_id):
     print(message)
     emit("safe-incoming", (username, message), to=room_id)
-
-
-# Template for the message event handler
-########################################
-# store message to database
-# @socketio.on('message')
-# def handle_message(data):
-#     sender_id = data['sender_id']
-#     receiver_id = data['receiver_id']
-#     content = data['content']
-#     message = Message(sender_id=sender_id,
-#                       receiver_id=receiver_id, content=content)
-#     db.session.add(message)
-#     db.session.commit()
-########################################
 
 # join room event handler
 # sent when the user joins a room
@@ -153,27 +132,58 @@ def leave(username, room_id):
     leave_room(room_id)
     room.leave_room(username)
 
-@socketio.on("send_encrypted_key")
-def handle_send_encrypted_key(data):
-    room_id = data["room_id"]
-    encrypted_key = data["encrypted_key"]
-    sender = data["sender"]
-    print(f"Emitting encrypted key to room {room_id}: {encrypted_key}")
-    emit("receive_encrypted_key", {'encrypted_key': encrypted_key, 'sender': sender, 'room_id': room_id}, to=room_id)
+@socketio.on("online")
+def heartbeat_online(username):
+    active_user = db.get_user(username)
+    if active_user:
+        active_user_friends = db.get_friends(active_user.username)
+        main_sid = user_sessions[active_user.username]
+        friends_session_ids = [user_sessions[x.username] for x in active_user_friends if x.username in user_sessions]
 
-@socketio.on("finally")
-def letsgo(username):
-    sender_name = username
-    room_id = room.get_room_id(sender_name)
-    emit("incoming", (f"{sender_name} has joined the room. Ready for secure communication!", "green"), to=room_id)
-    emit("incoming", ("Now generating HMAC keys for both users.", "blue"), to=room_id)
-
-    # Generate a 16-byte salt
-    salt = os.urandom(16)
-    # Encode the salt in Base64 to make it easy to transmit and store
-    salt_encoded = base64.b64encode(salt).decode('utf-8')
+        # notify all friends that the user is online
+        for friend_sid in friends_session_ids:
+            emit("friend_online", {"username": username}, room=friend_sid)
+        
+        # notify the user of their friends' online statuses
+        for friend in active_user_friends:
+            if friend.username in user_sessions:
+                emit("friend_online", {"username": friend.username}, room=main_sid)
     
-    # Emit the setupHMACKeys event with the salt
-    emit("setupHMACKeys", {'room_id': room_id, 'salt': salt_encoded}, to=room_id)
 
+@socketio.on("offline")
+def heartbeat_offline(username):
+    inactive_user = db.get_user(username)
+    if inactive_user:
+        inactive_user_friends = db.get_friends(inactive_user.username)
+        friends_session_ids = [user_sessions[x.username] for x in inactive_user_friends if x.username in user_sessions]
 
+        # notify all friends that user is offline
+        for friend_sid in friends_session_ids:
+            emit("friend_offline", {"username": username}, room=friend_sid)
+
+##############
+# ENCRYPTION #
+##############
+
+# @socketio.on("send_encrypted_key")
+# def handle_send_encrypted_key(data):
+#     room_id = data["room_id"]
+#     encrypted_key = data["encrypted_key"]
+#     sender = data["sender"]
+#     print(f"Emitting encrypted key to room {room_id}: {encrypted_key}")
+#     emit("receive_encrypted_key", {'encrypted_key': encrypted_key, 'sender': sender, 'room_id': room_id}, to=room_id)
+
+# @socketio.on("finally")
+# def letsgo(username):
+#     sender_name = username
+#     room_id = room.get_room_id(sender_name)
+#     emit("incoming", (f"{sender_name} has joined the room. Ready for secure communication!", "green"), to=room_id)
+#     emit("incoming", ("Now generating HMAC keys for both users.", "blue"), to=room_id)
+
+#     # Generate a 16-byte salt
+#     salt = os.urandom(16)
+#     # Encode the salt in Base64 to make it easy to transmit and store
+#     salt_encoded = base64.b64encode(salt).decode('utf-8')
+    
+#     # Emit the setupHMACKeys event with the salt
+#     emit("setupHMACKeys", {'room_id': room_id, 'salt': salt_encoded}, to=room_id)
