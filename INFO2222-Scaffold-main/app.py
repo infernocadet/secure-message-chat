@@ -365,6 +365,28 @@ def reject_friend_request():
         db_session.close()
 
 
+@app.route("/remove_friend", methods=['POST'])
+@login_required
+def remove_friend():
+    username = session.get("username")
+    friend_username = request.json.get("friend_username")
+
+    if not username or not friend_username:
+        return jsonify({"error": "Invalid request"}), 400
+    
+    success, error_message = db.remove_friend(username, friend_username)
+
+    if success:
+        # emit events to update friends list
+        if username in user_sessions:
+            socketio.emit("update_friends_list", {"removed_friend": friend_username}, room=user_sessions[username])
+        if friend_username in user_sessions:
+            socketio.emit("update_friends_list", {"removed_friend": username}, room=user_sessions[friend_username])
+        return jsonify({"success": "Friend removed"}), 200
+    else:
+        return jsonify({"error": error_message}), 404
+
+
 @app.route("/api/get-friends")
 @login_required
 def get_friends():

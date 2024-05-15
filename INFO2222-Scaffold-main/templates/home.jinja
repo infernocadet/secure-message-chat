@@ -100,12 +100,38 @@
         background-color: red;
     }
 
+    .edit-mode .friend-item:hover {
+        text-decoration: line-through;
+    }
+
 </style>
+
+<!-- Modal HTML -->
+<div class="modal fade" id="removeFriendModal" tabindex="-1" role="dialog" aria-labelledby="removeFriendModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removeFriendModalLabel">Remove Friend</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to remove <span id="friendName"></span> as a friend?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                <button type="button" class="btn btn-primary" id="confirmRemoveButton">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <nav>
     <ul>
     <li style="display:inline-block; float: left">Logged in as: {{ username }}</li>
     <li style="display:inline-block; float: right"><button onclick="logout()">Logout</button></li>
+    <li style="display:inline-block; float: right"><button onclick="toggleEditMode()">Edit Friends</button></li>
     </ul>
 </nav>
 
@@ -117,7 +143,7 @@
             {% if friends %}
                 <ul id="friendsList">
                     {% for item in friends %}
-                        <li id="friend-{{ item.username }}" onclick="click_join('{{ item.username }}')">
+                        <li id="friend-{{ item.username }}" class="friend-item" onclick="handleFriendClick('{{ item.username }}')">
                             {{ item.username }} <span id="status-{{ item.username }}" class="status-indicator offline"></span>
                         </li>
                     {% endfor %}
@@ -348,6 +374,68 @@
         }
     });
     
+    // handling friend removal in edit mode
+    let editMode = false;
+    let friendToRemove = '';
+
+    function toggleEditMode(){
+        editMode = !editMode;
+        const editButton = document.querySelector('button[onclick="toggleEditMode()"]');
+        const friendsList = document.getElementById('friendsList');
+
+        if (editMode){
+            editButton.textContent = "Done";
+            friendsList.classList.add('edit-mode');
+            toggleFriendList(true);
+        } else {
+            editButton.textContent = "Edit Friends";
+            friendsList.classList.remove('edit-mode');
+            toggleFriendList(false);
+        }
+    }
+
+    function toggleFriendList(editMode) {
+        const friendsList = document.getElementById('friendsList');
+        const friends = friendsList.getElementsByTagName('li');
+
+        for (let friend of friends) {
+            if (editMode) {
+                // In edit mode: remove status indicator and change click behavior
+                const statusIndicator = friend.querySelector('.status-indicator');
+                if (statusIndicator) {
+                    statusIndicator.remove();
+                }
+                friend.onclick = () => showRemoveFriendModal(friend.id.split('-')[1]);
+            } else {
+                // In normal mode: restore status indicator and change click behavior back to chat
+                const username = friend.id.split('-')[1];
+                const statusIndicator = document.createElement('span');
+                statusIndicator.id = `status-${username}`;
+                statusIndicator.className = 'status-indicator offline';
+                friend.appendChild(statusIndicator);
+                friend.onclick = () => click_join(username);
+            }
+        }
+    }
+
+    function showRemoveFriendModal(friendUsername) {
+        friendToRemove = friendUsername;
+        document.getElementById('friendName').textContent = friendUsername;
+        $('#removeFriendModal').modal('show');
+    }
+
+    document.getElementById('confirmRemoveButton').addEventListener('click', function() {
+        removeFriend(friendToRemove);
+        $('#removeFriendModal').modal('hide');
+    });
+
+    function handleFriendClick(friendUsername){
+        if (editMode){
+            showRemoveFriendModal(friendUsername);
+        } else {
+            click_join(friendUsername);
+        }
+    }
 
     // adding friend function
     document.getElementById('friendrequestForm').addEventListener('submit', function(event) {
@@ -462,47 +550,70 @@
         });
     };
 
+    function removeFriend(friendUsername) {
+        let removeFriendURL = "{{ url_for('remove_friend') }}";
+
+        axios.post(removeFriendURL, {
+            friend_username: friendUsername
+        })
+        .then(function(response) {
+            console.log(response.data);
+            if (response.data.success) {
+                // Remove friend from the list
+                let friendElement = document.getElementById('friend-' + friendUsername);
+                if (friendElement) {
+                    friendElement.remove();
+                }
+            } else {
+                console.error(response.data.error);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
+    }
+
     // this is where update friends list was before
     // update friends list when a new friend is added
-    socket.on("update_friends_list", function(data){
+    socket.on("update_friends_list", function(data) {
+        if (data.new_friend) {
+            let newFriendUsername = data.new_friend;
+            let friendsList = document.getElementById('friendsList');
+            let friendsSection = document.getElementById('friendsSection');
+            let lonelyMessage = document.getElementById('lonelyMessage');
 
-        // backend sends username of new friend
-        let newFriendUsername = data.new_friend;
-
-        // get all current friends list elements
-        let friendsList = document.getElementById('friendsList');
-        let friendsSection = document.getElementById('friendsSection');
-        let lonelyMessage = document.getElementById('lonelyMessage');
-
-        // check if friends list exists, create if not
-        if (!friendsList){
-            if (lonelyMessage){
-                lonelyMessage.remove();
+            if (!friendsList) {
+                if (lonelyMessage) {
+                    lonelyMessage.remove();
+                }
+                friendsList = document.createElement('ul');
+                friendsList.id = 'friendsList';
+                friendsSection.appendChild(friendsList);
             }
-            friendsList = document.createElement('ul');
-            friendsList.id = 'friendsList';
-            friendsSection.appendChild(friendsList)
+
+            let newFriendItem = document.createElement('li');
+            newFriendItem.id = "friend-" + newFriendUsername;
+            newFriendItem.classList.add('friend-item');
+            newFriendItem.setAttribute('onclick', `handleFriendClick('${newFriendUsername}')`);
+            let usernameText = document.createTextNode(newFriendUsername + " ");
+            newFriendItem.appendChild(usernameText);
+
+            if (!editMode) {
+                let statusIndicator = document.createElement('span');
+                statusIndicator.id = "status-" + newFriendUsername;
+                statusIndicator.className = "status-indicator offline";
+                newFriendItem.appendChild(statusIndicator);
+            }
+
+            friendsList.appendChild(newFriendItem);
+        } else if (data.removed_friend) {
+            let removedFriendUsername = data.removed_friend;
+            let friendElement = document.getElementById('friend-' + removedFriendUsername);
+            if (friendElement) {
+                friendElement.remove();
+            }
         }
-
-        // add friend into the list
-        let newFriendItem = document.createElement('li');
-        newFriendItem.id = "friend-" + newFriendUsername;
-        newFriendItem.setAttribute('onclick', `click_join('${newFriendUsername}')`); // Bind click event inline
-        
-        // add username and status indicator
-        let usernameText = document.createTextNode(newFriendUsername + " ");
-        newFriendItem.appendChild(usernameText);
-
-        // create and append the status indicator
-        let statusIndicator = document.createElement('span');
-        statusIndicator.id = "status-" + newFriendUsername;
-        statusIndicator.className = "status-indicator offline";
-        newFriendItem.appendChild(statusIndicator);
-        
-        // append new friend to the list
-        friendsList.appendChild(newFriendItem);
         socket.emit('online', username)
-        
     });
 
     // update friend requests list when a friend request is received
