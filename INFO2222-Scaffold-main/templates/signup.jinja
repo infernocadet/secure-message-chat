@@ -22,44 +22,15 @@ Sign up page, pretty much the same as login.
     <div>
         <a href="{{ url_for('login') }}">Already have an account? Log in here</a>
     </div>
+
+    {# DEPRECATED ENCRYPTION FUNCTIONS #}
+    {# <script src="/static/js/signup/signup-indexeddb.js"></script> #}
+    {# <script src="/static/js/signup/signup-keypairgeneration.js"></script> #}
+    {# <script src="/static/js/signup/signup-signup.js"></script> #}
+
     <script>
-    
-        let db;
-
-        window.onload = function() {
-            // open or create database
-            let request = indexedDB.open("CryptoKeys", 3);
-
-            // create schema
-            request.onupgradeneeded = function(event) {
-                let db = event.target.result;
-
-                // create object store for private keys if not exist
-                if (!db.objectStoreNames.contains("PrivateKeyStore")) {
-                    db.createObjectStore("PrivateKeyStore", {keyPath: "id"});
-                }
-                
-                // Create an object store for symmetric keys if it doesn't already exist
-                if (!db.objectStoreNames.contains("SymmetricKeys")) {
-                    db.createObjectStore("SymmetricKeys", { keyPath: "id" });
-                }
-
-                // Create an object store for hmac keys if it doesn't already exist
-                if (!db.objectStoreNames.contains("HMACKeys")) {
-                    db.createObjectStore("HMACKeys", { keyPath: "id" });
-                }
-            };
-
-            request.onsuccess = function(event) {
-                // start a new transaction
-                db = event.target.result;
-                console.log("Database opened successfully");
-            };
-
-            request.onerror = function(event) {
-                console.error("Database error", event.target.errorCode);
-            };
-        }
+        let passwordValid = false;
+        let usernameValid = false;
         
         document.getElementById("password").addEventListener('input', function(event) {
             const password = event.target.value;
@@ -113,89 +84,33 @@ Sign up page, pretty much the same as login.
             return false;
         }
 
-        async function generateAndStoreKeyPair(){
-
-            const keyPair = await window.crypto.subtle.generateKey(
-                {
-                    name: "RSA-OAEP",
-                    modulusLength: 2048,
-                    publicExponent: new Uint8Array([1, 0, 1]),
-                    hash: "SHA-256"
-                },
-                true, // whether the key is extractable (i.e., can be taken out of the web crypto API)
-                ["encrypt", "decrypt"] // key usages
-            );
-
-
-            // export public key in a format which can be sent to server
-            const exportedPublicKey = await window.crypto.subtle.exportKey(
-                "spki",
-                keyPair.publicKey
-            );
-
-            // convert to base64 so it can be sent in a JSON object
-            const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
-
-            return {publicKey: publicKeyBase64, privateKey: keyPair.privateKey};
-        }
-
-        async function storePrivateKeyLocally(username, privateKey){
-            try {
-                const key = await window.crypto.subtle.exportKey('jwk', privateKey);
-                const transaction = db.transaction(["PrivateKeyStore"], "readwrite");
-                const store = transaction.objectStore("PrivateKeyStore");
-                store.put({id: username, key: JSON.stringify(key)});
-            } catch (err){
-                console.error("Error exporting or storing key:", err);
-            }
-        }
-
-        // THIS WAS FOR TESTING NOT PART OF THE FINAL PRODUCT :D - WE DO NOT SHOW PRIVATE KEYS
-        function logPrivateKeyForTesting(username){
-            const transaction = db.transaction(["PrivateKeyStore"], "readonly");
-            const store = transaction.objectStore("PrivateKeyStore");
-            const request = store.get(username);
-
-            request.onsuccess = function() {
-                if (request.result) {
-                    console.log("(Signup)Private key:", username, request.result.key);
-                } else {
-                    console.log("(Signup)No private key stored")
-                }
-            };
-        }
 
         document.getElementById('signupButton').addEventListener('click', async () => {
             const username = $("#username").val();
             const password = $("#password").val();
+            signup(username, password)
 
-            // Generate a key pair for the user
-            const keyPair = await generateAndStoreKeyPair();
+            // Generate a key pair for the user - NO LONGER USING
+            // const keyPair = await generateAndStoreKeyPair();
 
-            // Store the private key securely in local storage
-            await storePrivateKeyLocally(username, keyPair.privateKey);
+            // Store the private key securely in local storage - NO LONGER USING
+            // await storePrivateKeyLocally(username, keyPair.privateKey);
             // logPrivateKeyForTesting(username); FOR TESTING
 
-            // sign up
-            signup(username, password, keyPair.publicKey)
+            // sign up - NO LONGER USING
+            // signup(username, password, keyPair.publicKey)
+        });
 
-        })
-        
-
-        async function signup(username, password, publicKey) {
+        async function signup(username, password){
             let signupButton = document.getElementById('signupButton');
             signupButton.disabled = true; // disables button, prevents multiple submissions
             let loginURL = "{{ url_for('signup_user') }}";
 
-            // Hash password 
+            // hash password
             let hashedPassword = CryptoJS.SHA256(password).toString();
-
-            console.log("Sending data:", { username, password: hashedPassword, publicKey });
-
             let res = await axios.post(loginURL, {
                 username: username,
-                password: hashedPassword,
-                publicKey: publicKey
+                password: hashedPassword        
             });
             if (!isValidURL(res.data)) {
                 alert(res.data);

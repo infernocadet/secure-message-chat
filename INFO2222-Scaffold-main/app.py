@@ -66,7 +66,6 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "username" not in session:
-            print("got here")
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -129,17 +128,16 @@ def signup_user():
 
     username = sanitize_input(request.json.get("username"))
     client_hashed_password = request.json.get("password")
-    public_key = request.json.get("publicKey")
+    
+    # DEPRECATED - no more public key bs
+    # public_key = request.json.get("publicKey")
 
     if db.get_user(username) is None:
 
         hashed_password = bcrypt.generate_password_hash(
             client_hashed_password).decode('utf-8')
         
-        db.insert_user(username, hashed_password, public_key)
-
-        print(f"User {username} created, password: {hashed_password}, key: {public_key}")
-        
+        db.insert_user(username, hashed_password)
         session.clear()
         session.permanent = True
         session['username'] = db.get_user(username).username
@@ -412,17 +410,6 @@ def get_friends():
         db_session.close()
 
 
-# encryption based methods
-@app.route("/get_public_key/<username>", methods=['GET'])
-@login_required
-def get_public_key(username):
-    user = db.get_user(username)
-    if user:
-        return jsonify({"public_key": user.public_key}), 200
-    else:
-        return jsonify({"error": "User not found"}), 404
-
-
 # route to logout
 @app.route("/logout", methods=['GET', 'POST'])
 @login_required
@@ -455,6 +442,20 @@ def add_security_headers(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
+###########################
+# DEPRECATED - ENCRYPTION #
+###########################
+
+# encryption based methods
+# @app.route("/get_public_key/<username>", methods=['GET'])
+# @login_required
+# def get_public_key(username):
+#     user = db.get_user(username)
+#     if user:
+#         return jsonify({"public_key": user.public_key}), 200
+#     else:
+#         return jsonify({"error": "User not found"}), 404
         
 
 if __name__ == '__main__':

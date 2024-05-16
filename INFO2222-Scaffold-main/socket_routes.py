@@ -67,63 +67,40 @@ def disconnect():
 # send message event handler
 @socketio.on("send")
 def send(username, message, room_id):
-    emit("incoming", (username, message), to=room_id) # to test, <script>alert('XSS Test');</script>
-
-@socketio.on("safe-send")
-def safe_send(username, message, room_id):
     print(message)
-    emit("safe-incoming", (username, message), to=room_id)
+    emit("incoming", (f"{username}: {message}"), to=room_id)
 
-# join room event handler
-# sent when the user joins a room
 @socketio.on("join")
 def join(sender_name, receiver_name):
-
-    # user who initiated the join
-    sender_name = sender_name.strip()
-
-    # user invited to the join
-    receiver_name = receiver_name.strip()
     
-    # check if the sender & receiver exists
     receiver = db.get_user(receiver_name)
     if receiver is None:
         return "Unknown receiver!"
+    
     sender = db.get_user(sender_name)
     if sender is None:
         return "Unknown sender!"
-    
-    # get the current room_ids of sender and receiver, if any
-    sender_room_id = room.get_room_id(sender_name) # always be none at the start (right now theres a bug where it isnt, causing multiple joins at the start)
-    receiver_room_id = room.get_room_id(receiver_name)
 
-    # terminal logging
-    print(f"Existing room: {sender_room_id}, room_id: {receiver_room_id}")
+    room_id = room.get_room_id(receiver_name)
 
-    # if user is already in a room, prompt to leave
-    if sender_room_id is not None and sender_room_id != receiver_room_id:
-        return "You are already in another room. Please leave it first."
+    # if the user is already inside of a room 
+    if room_id is not None:
+        
+        room.join_room(sender_name, room_id)
+        join_room(room_id)
+        # emit to everyone in the room except the sender
+        emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
+        # emit only to the sender
+        emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
+        return room_id
 
-    # if user is already in a room with them
-    if sender_room_id and receiver_room_id and sender_room_id == receiver_room_id:
-        if room.is_active(sender_name) and room.is_active(receiver_name):
-            return "You are already connected with this user." 
-
-    # if the receiver is not in a room, then sender creates a room, an allocates that room_id to both of them.
-    # sender then joins that room.
-    if receiver_room_id is None:
-        receiver_room_id = room.create_room(sender_name, receiver_name) 
-        join_room(receiver_room_id)
-        emit("waiting", {"room_id": receiver_room_id, "receiver": receiver_name}, to=receiver_room_id)
-        emit("incoming", (f"{sender_name} has joined the room. Waiting for {receiver_name} to join.", "green"), to=receiver_room_id)
-    else:
-        if not room.is_active(sender_name) and sender_room_id == receiver_room_id:
-            room.join_room(sender_name, receiver_room_id)
-            join_room(receiver_room_id)
-            print(f"Emitting room_ready to room {receiver_room_id}, from {sender_name} with friendUsername {receiver_name}")
-            emit("room_ready", {"room_id": receiver_room_id, "sender": sender_name, "receiver": receiver_name}, to=receiver_room_id)
-    
-    return receiver_room_id    
+    # if the user isn't inside of any room, 
+    # perhaps this user has recently left a room
+    # or is simply a new user looking to chat with someone
+    room_id = room.create_room(sender_name, receiver_name)
+    join_room(room_id)
+    emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"), to=room_id)
+    return room_id
 
 # leave room event handler
 @socketio.on("leave")
@@ -187,3 +164,4 @@ def heartbeat_offline(username):
     
 #     # Emit the setupHMACKeys event with the salt
 #     emit("setupHMACKeys", {'room_id': room_id, 'salt': salt_encoded}, to=room_id)
+

@@ -40,7 +40,9 @@ class User(Base):
     # in other words we've mapped the username Python object property to an SQL column of type String 
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
-    public_key: Mapped[str] = mapped_column(Text, nullable=True) # Storing public key as text
+    
+    # deprecated - no more keys
+    # public_key: Mapped[str] = mapped_column(Text, nullable=True) # Storing public key as text
 
     # establishing relationship with user model. joins with the friend_table.
     # back_populates ensures that adding friends is bi-directional
@@ -85,26 +87,18 @@ class Room():
     def __init__(self):
         self.counter = Counter()
         self.dict: Dict[str, int] = {}
-        self.active_participants: Dict[int, set] = {}
 
     def create_room(self, sender: str, receiver: str) -> int:
         room_id = self.counter.get()
         self.dict[sender] = room_id
         self.dict[receiver] = room_id
-        self.active_participants[room_id] = set()
         return room_id
     
     def join_room(self,  sender: str, room_id: int) -> int:
         self.dict[sender] = room_id
-        self.active_participants[room_id].add(sender)
 
     def leave_room(self, user):
         if user in self.dict:
-            room_id = self.dict[user]
-            if user in self.active_participants[room_id]:
-                self.active_participants[room_id].remove(user)
-            if not self.active_participants[room_id]:  # If no active participants, cleanup
-                del self.active_participants[room_id]
             del self.dict[user]
 
     # gets the room id from a user
@@ -112,8 +106,3 @@ class Room():
         if user not in self.dict.keys():
             return None
         return self.dict[user]
-    
-    def is_active(self, user: str):
-        room_id = self.get_room_id(user)
-        return room_id in self.active_participants and user in self.active_participants[room_id]
-    
