@@ -55,3 +55,68 @@ def remove_friend(current_username: str, friend_username: str):
             return True, None
         else:
             return False, "Friend relationship not found"
+
+# Adds user to existing room - wont be used. Wanted feature
+# def add_user_to_room(username, room_id):
+#     """
+#     Can add user to an existing room. 
+#     """
+#     with Session(engine) as session:
+#         user = session.query(User).filter_by(username=username).first()
+#         room = session.query(Room).filter_by(id=room_id).first()
+#         if user and room:
+#             room.users.append(user)
+#             session.commit()
+
+def get_user_rooms(username):
+    """
+    Retrieves all rooms a user is part of.
+    """
+    with Session(engine) as session:
+        user = session.query(User).filter_by(username=username).first()
+        if user:
+            return user.rooms
+        return []
+        
+def find_room_with_users(usernames):
+    """
+    Tries to find an existing room with given usernames. 
+    """
+    with Session(engine) as session:
+        # normalise names by sorting
+        sorted_usernames = sorted(usernames)
+
+        # query our rooms table to see if there is such a room
+        rooms = session.query(Room).all()
+        for room in rooms:
+            # get all usernames in current room
+            room_usernames = sorted([user.username for user in room.users])
+            if room_usernames == sorted_usernames:
+                return room
+        
+        # if no room found
+        return None
+
+def create_room(name: str, usernames: list) -> int:
+    """
+    Creates a new room and adds users to it.
+    """
+    with Session(engine) as session:
+
+        existing_room = find_room_with_users(usernames)
+        if existing_room:
+            return existing_room.id
+
+        # if no existing room found
+        new_room = Room(name=name)
+        session.add(new_room)
+        session.commit()
+        
+        # add users to the room 
+        for username in usernames:
+            user = session.query(User).filter_by(username=username).first()
+            if user:
+                new_room.users.append(user)
+        
+        session.commit()
+        return new_room.id

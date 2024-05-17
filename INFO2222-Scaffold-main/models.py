@@ -28,16 +28,17 @@ friend_table = Table('friends', Base.metadata,
     Column('friend_id', String, ForeignKey('user.username'), primary_key=True)
 )
 
+# similar helper table for rooms and users supporting a many to many relationship
+user_room_table = Table(
+    'user_room', Base.metadata,
+    Column('user_id', String, ForeignKey('user.username'), primary_key=True),
+    Column('room_id', Integer, ForeignKey('room.id'), primary_key=True)
+)
+
 
 # model to store user information
 class User(Base):
     __tablename__ = "user"
-    
-    # looks complicated but basically means
-    # I want a username column of type string,
-    # and I want this column to be my primary key
-    # then accessing john.username -> will give me some data of type string
-    # in other words we've mapped the username Python object property to an SQL column of type String 
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
     
@@ -65,6 +66,12 @@ class User(Base):
         backref="receiver"
     )
 
+    rooms: Mapped[List["Room"]] = relationship(
+        "Room",
+        secondary=user_room_table,
+        back_populates="users"
+    )
+
 class FriendRequest(Base):
     __tablename__ = "friendrequests"
     # in the case we want to track if a user is spamming requests
@@ -73,36 +80,47 @@ class FriendRequest(Base):
     receiver_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     status: Mapped[str] = mapped_column(String) # ["rejected", "pending", "accepted"]   
 
+class Room(Base):
+    __tablename__ = 'room'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    users: Mapped[List["User"]] = relationship(
+        "User",
+        secondary=user_room_table,
+        back_populates="rooms"
+    )
+
+
 # stateful counter used to generate the room id
-class Counter():
-    def __init__(self):
-        self.counter = 0 
+# class Counter():
+#     def __init__(self):
+#         self.counter = 0 
     
-    def get(self):
-        self.counter += 1
-        return self.counter
+#     def get(self):
+#         self.counter += 1
+#         return self.counter
 
 # Room class, used to keep track of which username is in which room
-class Room():
-    def __init__(self):
-        self.counter = Counter()
-        self.dict: Dict[str, int] = {}
+# class Room():
+#     def __init__(self):
+#         self.counter = Counter()
+#         self.dict: Dict[str, int] = {}
 
-    def create_room(self, sender: str, receiver: str) -> int:
-        room_id = self.counter.get()
-        self.dict[sender] = room_id
-        self.dict[receiver] = room_id
-        return room_id
+#     def create_room(self, sender: str, receiver: str) -> int:
+#         room_id = self.counter.get()
+#         self.dict[sender] = room_id
+#         self.dict[receiver] = room_id
+#         return room_id
     
-    def join_room(self,  sender: str, room_id: int) -> int:
-        self.dict[sender] = room_id
+#     def join_room(self,  sender: str, room_id: int) -> int:
+#         self.dict[sender] = room_id
 
-    def leave_room(self, user):
-        if user in self.dict:
-            del self.dict[user]
+#     def leave_room(self, user):
+#         if user in self.dict:
+#             del self.dict[user]
 
-    # gets the room id from a user
-    def get_room_id(self, user: str):
-        if user not in self.dict.keys():
-            return None
-        return self.dict[user]
+#     # gets the room id from a user
+#     def get_room_id(self, user: str):
+#         if user not in self.dict.keys():
+#             return None
+#         return self.dict[user]

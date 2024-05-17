@@ -188,8 +188,11 @@ def home():
     
     finally:
         db_session.close()
+    
+    rooms = db.get_user_rooms(current_user_username)
 
-    return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests, sent_requests=sent_requests_list)
+    return render_template("home.jinja", username=current_user_username, friends=friends, 
+                           incoming_friends=incoming_requests, sent_requests=sent_requests_list, rooms=rooms)
 
 
 @app.route("/add_friend", methods=['POST'])
