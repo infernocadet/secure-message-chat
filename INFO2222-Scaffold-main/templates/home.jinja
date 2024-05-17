@@ -1,826 +1,911 @@
 <!-- 
     Here you'll find the main exhibit: the chat application code. Feel free to look around!
 -->
-{% extends 'base.jinja' %}
+{% extends 'base.jinja' %} {% block content %}
+<style>
+  nav {
+      border-bottom: 1px solid black;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: #FFF;
+      z-index: 2;
+  }
 
+  nav ul {
+      margin: 0;
+      padding: 0;
+      list-style-type: none;
+  }
 
-{% block content %} 
-   <style>
-    nav {
-        border-bottom: 1px solid black;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: #FFF;
-        z-index: 2;
-    }
+  nav li {
+      padding: 10px 20px;
+  }
 
-    nav ul {
-        margin: 0;
-        padding: 0;
-        list-style-type: none;
-    }
+  #main-content {
+      margin-top: 20px;
+      padding: 5px;
+  }
 
-    nav li {
-        padding: 10px 20px;
-    }
+  #message_box {
+      border: 1px solid black;
+      height: 400px;
+      width: 800px;
+      overflow: auto;
+      padding: 2px;
+      margin-top; 20px;
+  }
 
-    #main-content {
-        margin-top: 20px;
-        padding: 5px;
-    }
+  .text  {
+      margin-top: 2px;
+      margin-bottom: 2px;
+  }
 
-    #message_box {
-        border: 1px solid black; 
-        height: 400px; 
-        width: 800px; 
-        overflow: auto;
-        padding: 2px;
-        margin-top; 20px;
-    }
+  #sidebar {
+      position: fixed;
+      right: 0;
+      top: 0px;
+      width: 250px;
+      height: 100vh;
+      overflow-y: auto;
+      background-color: #dee2e6
+  }
 
-    .text  {
-        margin-top: 2px;
-        margin-bottom: 2px;
-    }
+  aside {
+      border-bottom: 1px solid black;
+      padding: 10px;
+  }
 
-    #sidebar {
-        position: fixed;
-        right: 0;
-        top: 0px;
-        width: 250px;
-        height: 100vh;
-        overflow-y: auto;
-        background-color: #dee2e6
-    }
+  aside h2 {
+      margin-top: 0;
+  }
 
-    aside {
-        border-bottom: 1px solid black;
-        padding: 10px;
-    }
+  #friendsSection {
+      margin-top: 60px;
+  }
 
-    aside h2 {
-        margin-top: 0;
-    }
+  #friendsList li {
+      cursor: pointer;
+      padding: 5px 10px;
+      transition: background-color 0.3s, color 0.3s;
+  }
 
-    #friendsSection {
-        margin-top: 60px;
-    }
+  #friendsList li:hover {
+      background-color: #d3d3d3;
+      color: #333;
+  }
 
-    #friendsList li {
-        cursor: pointer;
-        padding: 5px 10px;
-        transition: background-color 0.3s, color 0.3s;
-    }
+  #friendsList li:active {
+      background-color: #808080;
+      color: #000;
+  }
 
-    #friendsList li:hover {
-        background-color: #d3d3d3;
-        color: #333;
-    }
+  .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-left: 5px;
+  }
 
-    #friendsList li:active {
-        background-color: #808080;
-        color: #000;
-    }
+  .online {
+      background-color: green;
+  }
 
-    .status-indicator {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-left: 5px;
-    }
+  .offline {
+      background-color: red;
+  }
 
-    .online {
-        background-color: green;
-    }
-
-    .offline {
-        background-color: red;
-    }
-
-    .edit-mode .friend-item:hover {
-        text-decoration: line-through;
-    }
-
+  .edit-mode .friend-item:hover {
+      text-decoration: line-through;
+  }
 </style>
 
 <!-- Modal HTML -->
-<div class="modal fade" id="removeFriendModal" tabindex="-1" role="dialog" aria-labelledby="removeFriendModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="removeFriendModalLabel">Remove Friend</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to remove <span id="friendName"></span> as a friend?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-                <button type="button" class="btn btn-primary" id="confirmRemoveButton">Yes</button>
-            </div>
-        </div>
+<div
+  class="modal fade"
+  id="removeFriendModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="removeFriendModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="removeFriendModalLabel">Remove Friend</h5>
+        <button
+          type="button"
+          class="close"
+          data-dismiss="modal"
+          aria-label="Close"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to remove <span id="friendName"></span> as a
+        friend?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          No
+        </button>
+        <button type="button" class="btn btn-primary" id="confirmRemoveButton">
+          Yes
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <nav>
-    <ul>
-    <li style="display:inline-block; float: left">Logged in as: {{ username }}</li>
-    <li style="display:inline-block; float: right"><button onclick="logout()">Logout</button></li>
-    <li style="display:inline-block; float: right"><button onclick="toggleEditMode()">Edit Friends</button></li>
-    </ul>
+  <ul>
+    <li style="display: inline-block; float: left">
+      Logged in as: {{ username }}
+      <br />
+      <a href="{{ url_for('knowledge_repository') }}"
+        >Visit the Knowledge Repository</a
+      >
+    </li>
+    <li style="display: inline-block; float: right">
+      <button onclick="logout()">Logout</button>
+    </li>
+    <li style="display: inline-block; float: right">
+      <button onclick="toggleEditMode()">Edit Friends</button>
+    </li>
+  </ul>
 </nav>
 
 <div id="sidebar">
-    <!-- Friends Section -->
-    <aside id="friendsSection">
-        <h2>Friends</h2>
-        <div id="friendsContent">
-            {% if friends %}
-                <ul id="friendsList">
-                    {% for item in friends %}
-                        <li id="friend-{{ item.username }}" class="friend-item" onclick="handleFriendClick('{{ item.username }}')">
-                            {{ item.username }} <span id="status-{{ item.username }}" class="status-indicator offline"></span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p id="lonelyMessage">It's a bit lonely in here...</p>
-            {% endif %}
-        </div>
-    </aside>
+  <!-- Friends Section -->
+  <aside id="friendsSection">
+    <h2>Friends</h2>
+    <div id="friendsContent">
+      {% if friends %}
+      <ul id="friendsList">
+        {% for item in friends %}
+        <li
+          id="friend-{{ item.username }}"
+          class="friend-item"
+          onclick="handleFriendClick('{{ item.username }}')"
+        >
+          {{ item.username }}
+          <span
+            id="status-{{ item.username }}"
+            class="status-indicator offline"
+          ></span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p id="lonelyMessage">It's a bit lonely in here...</p>
+      {% endif %}
+    </div>
+  </aside>
 
-    <!-- Incoming Requests Section -->
-    <aside id="incomingRequestsSection">
-        <h2>Incoming Requests</h2>
-        <div id="incomingFriendsContent">
-            <ul id="incomingRequestsList">
-                {% for item in incoming_friends %}
-                    <li id="friend-request-{{ item.id }}">
-                        {{ item.sender_username }}
-                        <button onclick="acceptfriendRequest('{{ item.id }}', this)">Accept</button>
-                        <button onclick="rejectfriendRequest('{{ item.id }}', this)">Reject</button>
-                        <p id="requestResponse" style="display:none;"></p>
-                    </li>
-                {% endfor %}
-            </ul>
-            {% if not incoming_friends %}
-                <p id="noIncomingRequestsMessage">No incoming requests. (tumbleweed)</p>
-            {% endif %}
-        </div>
-    </aside>
+  <!-- Incoming Requests Section -->
+  <aside id="incomingRequestsSection">
+    <h2>Incoming Requests</h2>
+    <div id="incomingFriendsContent">
+      <ul id="incomingRequestsList">
+        {% for item in incoming_friends %}
+        <li id="friend-request-{{ item.id }}">
+          {{ item.sender_username }}
+          <button onclick="acceptfriendRequest('{{ item.id }}', this)">
+            Accept
+          </button>
+          <button onclick="rejectfriendRequest('{{ item.id }}', this)">
+            Reject
+          </button>
+          <p id="requestResponse" style="display: none"></p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if not incoming_friends %}
+      <p id="noIncomingRequestsMessage">No incoming requests. (tumbleweed)</p>
+      {% endif %}
+    </div>
+  </aside>
 
-    <!-- Sent Requests Section -->
-    <aside id="sentRequestsSection">
-        <h2>Sent Requests</h2>
-        <div id="sentRequestsContent">
-            {% if sent_requests %}
-                <ul id="sentRequestsList">
-                    {% for sent in sent_requests %}
-                        <li id="sent-request-{{ sent.id }}">
-                            {{ sent.receiver_username }}
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p id="noSentRequestsMessage">No sent requests. Go and add someone!</p>
-            {% endif %}    
-        </div>
-    </aside>
+  <!-- Sent Requests Section -->
+  <aside id="sentRequestsSection">
+    <h2>Sent Requests</h2>
+    <div id="sentRequestsContent">
+      {% if sent_requests %}
+      <ul id="sentRequestsList">
+        {% for sent in sent_requests %}
+        <li id="sent-request-{{ sent.id }}">
+          {{ sent.receiver_username }}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p id="noSentRequestsMessage">No sent requests. Go and add someone!</p>
+      {% endif %}
+    </div>
+  </aside>
 </div>
 
 <div id="main-content">
-    <h1>Messaging App </h1>
+  <h1>Messaging App</h1>
 
-    <main>
-        <!-- The messages are displayed here -->
-        <section id="message_box"></section>
+  <main>
+    <!-- The messages are displayed here -->
+    <section id="message_box"></section>
 
-        <!-- These part ideally should be a form element, 
+    <!-- These part ideally should be a form element, 
         but I wrote this code a year ago and I don't want to break anything...-->
-        <section id="chat_box">
-            <p class="text">Chat with: </p>
-            <input id="receiver" placeholder="username">
-            <!-- MDN says its bad practice to use the onclick attribute,
+    <section id="chat_box">
+      <p class="text">Chat with:</p>
+      <input id="receiver" placeholder="username" />
+      <!-- MDN says its bad practice to use the onclick attribute,
             but we're using it anyways coz its easy :)-->
-            <button onclick="chat_button_clicked()" id="chatButton" disabled>Chat</button>
-        </section>
-        <p id="chatRequestResponse" style="display:none;"></p>
+      <button onclick="chat_button_clicked()" id="chatButton" disabled>
+        Chat
+      </button>
+    </section>
+    <p id="chatRequestResponse" style="display: none"></p>
 
-        <!-- The (message) input box is set to display: none initially, 
+    <!-- The (message) input box is set to display: none initially, 
         this means the input box is "invisible" initially-->
-        <section id="input_box" style="display: none" >
-            <p class="text">Message: </p>
-            <input id="message" placeholder="message">
-            <button onclick="send()">Send</button>
-            <button onclick="leave()">Leave Room</button>
-        </section>
-    </main>
+    <section id="input_box" style="display: none">
+      <p class="text">Message:</p>
+      <input id="message" placeholder="message" />
+      <button onclick="send()">Send</button>
+      <button onclick="leave()">Leave Room</button>
+    </section>
+  </main>
 
-    <!-- Friends form to add friends -->
-    <h1>Add friend</h1>
-    <form id="friendrequestForm">
-        <label for="friendUsername">Friend's Username:</label>
-        <input id="friendUsername" name ="friendUsername" type="text" required />
-        <button type="submit">Add Friend</button>
-    </form>
-    <p id="friendRequestMessage" style="display:none;"></p>
+  <!-- Friends form to add friends -->
+  <h1>Add friend</h1>
+  <form id="friendrequestForm">
+    <label for="friendUsername">Friend's Username:</label>
+    <input id="friendUsername" name="friendUsername" type="text" required />
+    <button type="submit">Add Friend</button>
+  </form>
+  <p id="friendRequestMessage" style="display: none"></p>
 </div>
 
 <script src="/static/js/libs/socket.io.min.js"></script>
-{# old encryption scripts #}
-{# <script src="/static/js/home-encryption/everything-encryption.js"></script> #}
+{# old encryption scripts #} {#
+<script src="/static/js/home-encryption/everything-encryption.js"></script>
+#}
 <script>
-    let room_id = 0;
-    let friendsList = [];
+  let room_id = 0;
+  let friendsList = [];
 
+  // when the user presses the "Enter" key inside of the "message box",
+  // the message is sent to the server
+  $("#message").on("keyup", (e) => {
+    if (e.key == "Enter") {
+      send();
+    }
+  });
 
-    // when the user presses the "Enter" key inside of the "message box", 
-    // the message is sent to the server
-    $("#message").on("keyup", (e) => {
-        if (e.key == "Enter") {
-            send();
-        }
-    })
-
-    $(document).ready(() => {
-        // room_id is undefined if the user hasn't joined a room
-        // we early return in this case
-        if (Cookies.get("room_id") == undefined) {
-            return;
-        }
-
-        // the user has already joined an existing room
-        // we'll display the message box, instead of the "Chat with: " box
-        $("#chat_box").hide();
-        $("#input_box").show();
-        room_id = parseInt(Cookies.get("room_id"));
-        console.log(room_id)
-    })
-    
-    // Here's the Socket IO part of the code
-    // things get a bit complicated here so brace yourselves :P
-    let username = "{{ username }}";
-
-    Cookies.set('username', username);
-
-    // initializes the socket
-    const socket = io();
-
-    // show that the user is online
-    socket.emit("online", username);
-    console.log(username + " is online");
-
-
-    // an incoming message arrives, we'll add the message to the message box
-    socket.on("incoming", (msg, color="black") => {
-        add_message(msg, color);
-    })
-    
-    // we'll send the message to the server by emitting a "send" event
-    async function send() {
-        let message = $("#message").val();
-        $("#message").val("");
-        if (message.trim() === "") return; // Prevent sending empty messages
-        console.log(message)
-
-        socket.emit("send", username, message, room_id);  
-    } 
-
-    // we emit a join room event to the server to join a room
-    function join_room() {
-       
-        let receiver = $("#receiver").val();
-
-        socket.emit("join", username, receiver, (res) => {
-            if (typeof res != "number") {
-                alert(res);
-                return;
-            }
-
-            room_id = res;
-            Cookies.set("room_id", room_id);
-
-            $("#chat_box").hide();
-            $("#input_box").show();
-        });
-     
+  $(document).ready(() => {
+    // room_id is undefined if the user hasn't joined a room
+    // we early return in this case
+    if (Cookies.get("room_id") == undefined) {
+      return;
     }
 
-    // function when the user clicks on "Leave Room"
-    // emits a "leave" event, telling the server that we want to leave the room
-    function leave() {
-        Cookies.remove("room_id");
-        socket.emit("leave", username, room_id);
-        $("#input_box").hide();
-        $("#chat_box").show();
-    }
+    // the user has already joined an existing room
+    // we'll display the message box, instead of the "Chat with: " box
+    $("#chat_box").hide();
+    $("#input_box").show();
+    room_id = parseInt(Cookies.get("room_id"));
+    console.log(room_id);
+  });
 
-    // function to add a message to the message box
-    // called when an incoming message has reached a client
-    function add_message(message, color) {
-        let box = $("#message_box");
-        let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
-        box.append(child);
-    }
+  // Here's the Socket IO part of the code
+  // things get a bit complicated here so brace yourselves :P
+  let username = "{{ username }}";
 
-        // handling friend online status update
-    socket.on("friend_online", function(data){
-        let friendUsername = data.username;
-        let statusIndicator = document.getElementById('status-' + friendUsername);
-        if (statusIndicator){
-            statusIndicator.classList.remove('offline');
-            statusIndicator.classList.add('online');
-        }
+  Cookies.set("username", username);
+
+  // initializes the socket
+  const socket = io();
+
+  // show that the user is online
+  socket.emit("online", username);
+  console.log(username + " is online");
+
+  // an incoming message arrives, we'll add the message to the message box
+  socket.on("incoming", (msg, color = "black") => {
+    add_message(msg, color);
+  });
+
+  // we'll send the message to the server by emitting a "send" event
+  async function send() {
+    let message = $("#message").val();
+    $("#message").val("");
+    if (message.trim() === "") return; // Prevent sending empty messages
+    console.log(message);
+
+    socket.emit("send", username, message, room_id);
+  }
+
+  // we emit a join room event to the server to join a room
+  function join_room() {
+    let receiver = $("#receiver").val();
+
+    socket.emit("join", username, receiver, (res) => {
+      if (typeof res != "number") {
+        alert(res);
+        return;
+      }
+
+      room_id = res;
+      Cookies.set("room_id", room_id);
+
+      $("#chat_box").hide();
+      $("#input_box").show();
     });
+  }
 
-    // handling friend offline status update
-    socket.on("friend_offline", function(data){
-        let friendUsername = data.username;
-        let statusIndicator = document.getElementById('status-' + friendUsername);
+  // function when the user clicks on "Leave Room"
+  // emits a "leave" event, telling the server that we want to leave the room
+  function leave() {
+    Cookies.remove("room_id");
+    socket.emit("leave", username, room_id);
+    $("#input_box").hide();
+    $("#chat_box").show();
+  }
+
+  // function to add a message to the message box
+  // called when an incoming message has reached a client
+  function add_message(message, color) {
+    let box = $("#message_box");
+    let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
+    box.append(child);
+  }
+
+  // handling friend online status update
+  socket.on("friend_online", function (data) {
+    let friendUsername = data.username;
+    let statusIndicator = document.getElementById("status-" + friendUsername);
+    if (statusIndicator) {
+      statusIndicator.classList.remove("offline");
+      statusIndicator.classList.add("online");
+    }
+  });
+
+  // handling friend offline status update
+  socket.on("friend_offline", function (data) {
+    let friendUsername = data.username;
+    let statusIndicator = document.getElementById("status-" + friendUsername);
+    if (statusIndicator) {
+      statusIndicator.classList.remove("online");
+      statusIndicator.classList.add("offline");
+    }
+  });
+
+  // handling friend removal in edit mode
+  let editMode = false;
+  let friendToRemove = "";
+
+  function toggleEditMode() {
+    editMode = !editMode;
+    const editButton = document.querySelector(
+      'button[onclick="toggleEditMode()"]'
+    );
+    const friendsList = document.getElementById("friendsList");
+
+    if (editMode) {
+      editButton.textContent = "Done";
+      friendsList.classList.add("edit-mode");
+      toggleFriendList(true);
+    } else {
+      editButton.textContent = "Edit Friends";
+      friendsList.classList.remove("edit-mode");
+      toggleFriendList(false);
+    }
+  }
+
+  function toggleFriendList(editMode) {
+    const friendsList = document.getElementById("friendsList");
+    const friends = friendsList.getElementsByTagName("li");
+
+    for (let friend of friends) {
+      if (editMode) {
+        // In edit mode: remove status indicator and change click behavior
+        const statusIndicator = friend.querySelector(".status-indicator");
         if (statusIndicator) {
-            statusIndicator.classList.remove('online');
-            statusIndicator.classList.add('offline');
+          statusIndicator.remove();
         }
-    });
-    
-    // handling friend removal in edit mode
-    let editMode = false;
-    let friendToRemove = '';
-
-    function toggleEditMode(){
-        editMode = !editMode;
-        const editButton = document.querySelector('button[onclick="toggleEditMode()"]');
-        const friendsList = document.getElementById('friendsList');
-
-        if (editMode){
-            editButton.textContent = "Done";
-            friendsList.classList.add('edit-mode');
-            toggleFriendList(true);
-        } else {
-            editButton.textContent = "Edit Friends";
-            friendsList.classList.remove('edit-mode');
-            toggleFriendList(false);
-        }
+        friend.onclick = () => showRemoveFriendModal(friend.id.split("-")[1]);
+      } else {
+        // In normal mode: restore status indicator and change click behavior back to chat
+        const username = friend.id.split("-")[1];
+        const statusIndicator = document.createElement("span");
+        statusIndicator.id = `status-${username}`;
+        statusIndicator.className = "status-indicator offline";
+        friend.appendChild(statusIndicator);
+        friend.onclick = () => click_join(username);
+      }
     }
+  }
 
-    function toggleFriendList(editMode) {
-        const friendsList = document.getElementById('friendsList');
-        const friends = friendsList.getElementsByTagName('li');
+  function showRemoveFriendModal(friendUsername) {
+    friendToRemove = friendUsername;
+    document.getElementById("friendName").textContent = friendUsername;
+    $("#removeFriendModal").modal("show");
+  }
 
-        for (let friend of friends) {
-            if (editMode) {
-                // In edit mode: remove status indicator and change click behavior
-                const statusIndicator = friend.querySelector('.status-indicator');
-                if (statusIndicator) {
-                    statusIndicator.remove();
-                }
-                friend.onclick = () => showRemoveFriendModal(friend.id.split('-')[1]);
-            } else {
-                // In normal mode: restore status indicator and change click behavior back to chat
-                const username = friend.id.split('-')[1];
-                const statusIndicator = document.createElement('span');
-                statusIndicator.id = `status-${username}`;
-                statusIndicator.className = 'status-indicator offline';
-                friend.appendChild(statusIndicator);
-                friend.onclick = () => click_join(username);
-            }
-        }
-    }
-
-    function showRemoveFriendModal(friendUsername) {
-        friendToRemove = friendUsername;
-        document.getElementById('friendName').textContent = friendUsername;
-        $('#removeFriendModal').modal('show');
-    }
-
-    document.getElementById('confirmRemoveButton').addEventListener('click', function() {
-        removeFriend(friendToRemove);
-        $('#removeFriendModal').modal('hide');
+  document
+    .getElementById("confirmRemoveButton")
+    .addEventListener("click", function () {
+      removeFriend(friendToRemove);
+      $("#removeFriendModal").modal("hide");
     });
 
-    function handleFriendClick(friendUsername){
-        if (editMode){
-            showRemoveFriendModal(friendUsername);
-        } else {
-            click_join(friendUsername);
-        }
+  function handleFriendClick(friendUsername) {
+    if (editMode) {
+      showRemoveFriendModal(friendUsername);
+    } else {
+      click_join(friendUsername);
     }
+  }
 
-    // adding friend function
-    document.getElementById('friendrequestForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // prevent form from submitting the traditional way
+  // adding friend function
+  document
+    .getElementById("friendrequestForm")
+    .addEventListener("submit", function (event) {
+      event.preventDefault(); // prevent form from submitting the traditional way
 
-        let friendUsername = document.getElementById('friendUsername').value;
-        let currentUsername = "{{ username }}";
+      let friendUsername = document.getElementById("friendUsername").value;
+      let currentUsername = "{{ username }}";
 
-        // add in error handling to prevent users from adding themselves
-        if (friendUsername == currentUsername) {
-            document.getElementById('friendRequestMessage').textContent = "Can't add yourself!";
-            document.getElementById('friendRequestMessage').style.display = 'block';
-            return new Error("Error message");
-        }
-        
-        // construct url for the post event
-        let addFriendURL = "{{ url_for('add_friend') }}";
+      // add in error handling to prevent users from adding themselves
+      if (friendUsername == currentUsername) {
+        document.getElementById("friendRequestMessage").textContent =
+          "Can't add yourself!";
+        document.getElementById("friendRequestMessage").style.display = "block";
+        return new Error("Error message");
+      }
 
-        // use axios to send post request
-        axios.post(addFriendURL, {
-            current_user: currentUsername,
-            friend_user: friendUsername
+      // construct url for the post event
+      let addFriendURL = "{{ url_for('add_friend') }}";
+
+      // use axios to send post request
+      axios
+        .post(addFriendURL, {
+          current_user: currentUsername,
+          friend_user: friendUsername,
         })
         .then(function (response) {
-
-            console.log(response.data);
-            document.getElementById('friendRequestMessage').textContent = "Friend request sent!";
-            document.getElementById('friendRequestMessage').style.display = 'block';
+          console.log(response.data);
+          document.getElementById("friendRequestMessage").textContent =
+            "Friend request sent!";
+          document.getElementById("friendRequestMessage").style.display =
+            "block";
         })
         .catch(function (error) {
-            console.error('Error:', error)
+          console.error("Error:", error);
 
-            // check if error response contains data
-            if (error.response && error.response.data){
-                // display error message
-                document.getElementById('friendRequestMessage').textContent = error.response.data.error;
-            } else {
-                document.getElementById('friendRequestMessage').textContent = "An error occurred while sending the friend request.";
-            }
-            document.getElementById('friendRequestMessage').style.display = 'block';
+          // check if error response contains data
+          if (error.response && error.response.data) {
+            // display error message
+            document.getElementById("friendRequestMessage").textContent =
+              error.response.data.error;
+          } else {
+            document.getElementById("friendRequestMessage").textContent =
+              "An error occurred while sending the friend request.";
+          }
+          document.getElementById("friendRequestMessage").style.display =
+            "block";
         });
     });
 
-    // function to accept a friend request
-    function acceptfriendRequest(requestID, element) {
-        let acceptURL = "{{ url_for('accept_friend_request') }}"
-        axios.post(acceptURL, {
-            request_id: requestID
-        })
-        .then(function (response) {
+  // function to accept a friend request
+  function acceptfriendRequest(requestID, element) {
+    let acceptURL = "{{ url_for('accept_friend_request') }}";
+    axios
+      .post(acceptURL, {
+        request_id: requestID,
+      })
+      .then(function (response) {
+        // check if response contains an error
+        if (response.data.error) {
+          // display error
+          document.getElementById("requestResponse").textContent =
+            response.data.error;
+          document.getElementById("requestResponse").style.display = "block";
+        } else {
+          // on success, remove request from list
+          element.closest("li").remove();
 
-            // check if response contains an error
-            if (response.data.error){
+          // check if any more friend requests
+          let incomingRequestsList = document.getElementById(
+            "incomingRequestsList"
+          );
+          if (
+            incomingRequestsList &&
+            incomingRequestsList.children.length === 0
+          ) {
+            // if none, display no incoming requests
+            noIncomingRequestsMessage.style.display = "block";
+          }
 
-                // display error
-                document.getElementById('requestResponse').textContent = response.data.error;
-                document.getElementById('requestResponse').style.display = 'block';
+          // success message
+          console.log(response.data);
+          document.getElementById("requestResponse").textContent =
+            "You accepted the request!";
+          document.getElementById("requestResponse").style.display = "block";
+        }
+      })
+      .catch(function (error) {
+        console.error("Error:", error);
+        document.getElementById("requestResponse").textContent = error;
+        document.getElementById("requestResponse").style.display = "block";
+      });
+  }
 
-            } else {
+  // function to reject a friend request
+  function rejectfriendRequest(requestID, element) {
+    let rejectURL = "{{ url_for('reject_friend_request') }}";
+    axios
+      .post(rejectURL, {
+        request_id: requestID,
+      })
+      .then(function (response) {
+        // on success, remove friend request from UI
+        element.closest("li").remove();
 
-                // on success, remove request from list
-                element.closest('li').remove();
+        // check if any more friend requests
+        let incomingRequestsList = document.getElementById(
+          "incomingRequestsList"
+        );
+        if (
+          incomingRequestsList &&
+          incomingRequestsList.children.length === 0
+        ) {
+          // if none, display no incoming requests
+          noIncomingRequestsMessage.style.display = "block";
+        }
 
-                // check if any more friend requests
-                let incomingRequestsList = document.getElementById('incomingRequestsList');
-                if (incomingRequestsList && incomingRequestsList.children.length === 0){
-                    // if none, display no incoming requests
-                    noIncomingRequestsMessage.style.display = 'block';
-                }
+        console.log(response.data);
+        document.getElementById("requestResponse").textContent =
+          "You rejected the request!";
+        document.getElementById("requestResponse").style.display = "block";
+      })
+      .catch(function (error) {
+        console.error("Error:", error);
+        document.getElementById("requestResponse").textContent = "reject error";
+        document.getElementById("requestResponse").style.display = "block";
+      });
+  }
 
-                // success message
-                console.log(response.data);
-                document.getElementById('requestResponse').textContent = "You accepted the request!";
-                document.getElementById('requestResponse').style.display = 'block';
-            }
-            
-        })
-        .catch(function (error){
-            console.error('Error:', error)
-            document.getElementById('requestResponse').textContent = error;
-            document.getElementById('requestResponse').style.display = 'block';
-        });
+  function removeFriend(friendUsername) {
+    let removeFriendURL = "{{ url_for('remove_friend') }}";
+
+    axios
+      .post(removeFriendURL, {
+        friend_username: friendUsername,
+      })
+      .then(function (response) {
+        console.log(response.data);
+        if (response.data.success) {
+          // Remove friend from the list
+          let friendElement = document.getElementById(
+            "friend-" + friendUsername
+          );
+          if (friendElement) {
+            friendElement.remove();
+          }
+        } else {
+          console.error(response.data.error);
+        }
+      })
+      .catch(function (error) {
+        console.error("Error:", error);
+      });
+  }
+
+  // this is where update friends list was before
+  // update friends list when a new friend is added
+  socket.on("update_friends_list", function (data) {
+    if (data.new_friend) {
+      let newFriendUsername = data.new_friend;
+      let friendsList = document.getElementById("friendsList");
+      let friendsSection = document.getElementById("friendsSection");
+      let lonelyMessage = document.getElementById("lonelyMessage");
+
+      if (!friendsList) {
+        if (lonelyMessage) {
+          lonelyMessage.remove();
+        }
+        friendsList = document.createElement("ul");
+        friendsList.id = "friendsList";
+        friendsSection.appendChild(friendsList);
+      }
+
+      let newFriendItem = document.createElement("li");
+      newFriendItem.id = "friend-" + newFriendUsername;
+      newFriendItem.classList.add("friend-item");
+      newFriendItem.setAttribute(
+        "onclick",
+        `handleFriendClick('${newFriendUsername}')`
+      );
+      let usernameText = document.createTextNode(newFriendUsername + " ");
+      newFriendItem.appendChild(usernameText);
+
+      if (!editMode) {
+        let statusIndicator = document.createElement("span");
+        statusIndicator.id = "status-" + newFriendUsername;
+        statusIndicator.className = "status-indicator offline";
+        newFriendItem.appendChild(statusIndicator);
+      }
+
+      friendsList.appendChild(newFriendItem);
+    } else if (data.removed_friend) {
+      let removedFriendUsername = data.removed_friend;
+      let friendElement = document.getElementById(
+        "friend-" + removedFriendUsername
+      );
+      if (friendElement) {
+        friendElement.remove();
+      }
+    }
+    socket.emit("online", username);
+  });
+
+  // update friend requests list when a friend request is received
+  socket.on("update_friend_requests", function (data) {
+    // backend sends username of new friend
+    let newFriendUsername = data.new_friend;
+
+    // retrieve request ID of the particular friend request
+    let requestID = data.request_id;
+
+    // get all current friend request list elements
+    let incomingRequestsList = document.getElementById("incomingRequestsList");
+    let incomingRequestsSection = document.getElementById(
+      "incomingRequestsSection"
+    );
+    let noIncomingRequestsMessage = document.getElementById(
+      "noIncomingRequestsMessage"
+    );
+
+    // remove noIncomingRequests message if exists
+    if (noIncomingRequestsMessage) {
+      noIncomingRequestsMessage.style.display = "none";
+    }
+
+    // create incoming request list if doesnt exist
+    if (!incomingRequestsList) {
+      incomingRequestsList = document.createElement("ul");
+      incomingRequestsList.id = "incomingRequestsList";
+      incomingRequestsSection.appendChild(incomingRequestsList);
+    }
+
+    // create list item for the new friend request
+    let requestItem = document.createElement("li");
+    requestItem.id = "friend-request-" + requestID;
+
+    // create text node for the username
+    let usernameText = document.createTextNode(newFriendUsername);
+    requestItem.appendChild(usernameText);
+
+    // create accept button
+    let acceptButton = document.createElement("button");
+    acceptButton.textContent = "Accept";
+    acceptButton.onclick = function () {
+      acceptfriendRequest(requestID, this);
+    };
+    requestItem.appendChild(acceptButton);
+
+    // create reject button
+    let rejectButton = document.createElement("button");
+    rejectButton.textContent = "Reject";
+    rejectButton.onclick = function () {
+      rejectfriendRequest(requestID, this);
+    };
+    requestItem.appendChild(rejectButton);
+
+    // append new request to the list
+    incomingRequestsList.appendChild(requestItem);
+  });
+
+  // update friends list when a friend request is sent
+  socket.on("update_sent_requests", function (data) {
+    // add new sent request
+    let receiverUsername = data.receiver_username;
+    let requestID = data.request_id;
+
+    // get the sent requests elements
+    let sentRequestsList = document.getElementById("sentRequestsList");
+    let sentRequestsSection = document.getElementById("sentRequestsSection");
+    let noSentRequestsMessage = document.getElementById(
+      "noSentRequestsMessage"
+    );
+
+    // remove noSentRequestsMessage
+    if (noSentRequestsMessage) {
+      noSentRequestsMessage.style.display = "none";
+    }
+
+    if (!sentRequestsList) {
+      sentRequestsList = document.createElement("ul");
+      sentRequestsList.id = "sentRequestsList";
+      sentRequestsSection.appendChild(sentRequestsList);
+    }
+
+    let requestItem = document.createElement("li");
+    requestItem.textContent = `${receiverUsername} - pending`;
+    requestItem.id = "sent-request-" + requestID;
+
+    // append new request to list
+    sentRequestsList.appendChild(requestItem);
+  });
+
+  // update friends list when a friend request is actioned
+  socket.on("update_sent_requests_status", function (data) {
+    let requestID = data.request_id;
+    let newStatus = data.new_status;
+
+    // find request item in sent requests list, update status
+    let requestItem = document.getElementById(`sent-request-${requestID}`);
+    requestItem.remove();
+
+    // check if no more sent requests
+    let sentRequestsList = document.getElementById("sentRequestsList");
+    let sentRequestsSection = document.getElementById("sentRequestsSection");
+    let noSentRequestsMessage = document.getElementById(
+      "noSentRequestsMessage"
+    );
+
+    if (sentRequestsList && sentRequestsList.children.length === 0) {
+      // If there are none, display the "No sent requests" message
+      if (noSentRequestsMessage) {
+        noSentRequestsMessage.style.display = "block"; // Make existing message visible
+      } else {
+        // Create the "No sent requests" message if it doesn't exist
+        noSentRequestsMessage = document.createElement("p");
+        noSentRequestsMessage.id = "noSentRequestsMessage";
+        noSentRequestsMessage.textContent =
+          "No sent requests. Go and add someone!";
+        sentRequestsSection.appendChild(noSentRequestsMessage);
+      }
+    }
+  });
+
+  socket.on("waiting", function (data) {
+    console.log("Waiting for " + data.receiver + " to join the room...");
+  });
+
+  // function to join a room with a friend
+  async function click_join(friendUsername) {
+    // use friend's username to join room
+    socket.emit("join", username, friendUsername, (res) => {
+      if (typeof res != "number") {
+        alert(res); // alert of error
+        return; // escape early
+      }
+      room_id = res; // set room id from response
+      Cookies.set("room_id", room_id); // set cookie
+
+      // show message input box and hide chat box
+      $("#chat_box").hide();
+      $("#input_box").show();
+    });
+  }
+
+  // when window is closed, user logs out
+  window.addEventListener("beforeunload", function (event) {
+    navigator.sendBeacon("{{ url_for('logout') }}");
+  });
+
+  // function to logout
+  function logout() {
+    // Clear the browser session history
+    window.history.pushState(null, null, window.location.href);
+    window.onpopstate = function () {
+      window.history.go(1);
     };
 
-    // function to reject a friend request
-    function rejectfriendRequest(requestID, element) {
-        let rejectURL = "{{ url_for('reject_friend_request') }}"
-        axios.post(rejectURL, {
-            request_id: requestID
-        })
-        .then(function (response) {
+    // Redirect to the logout URL
+    window.location.href = "{{ url_for('logout') }}";
+  }
 
-            // on success, remove friend request from UI
-            element.closest('li').remove();
+  // disable chat button if no receiver is entered
+  document.getElementById("receiver").addEventListener("keyup", function () {
+    let receiverInput = document.getElementById("receiver").value;
+    let chatButton = (document.getElementById("chatButton").disabled =
+      !receiverInput.trim());
+  });
 
-            // check if any more friend requests
-            let incomingRequestsList = document.getElementById('incomingRequestsList');
-            if (incomingRequestsList && incomingRequestsList.children.length === 0){
-                // if none, display no incoming requests
-                noIncomingRequestsMessage.style.display = 'block';
-            }
-
-            console.log(response.data);
-            document.getElementById('requestResponse').textContent = "You rejected the request!";
-            document.getElementById('requestResponse').style.display = 'block';
-
-        })
-        .catch(function (error){
-            console.error('Error:', error)
-            document.getElementById('requestResponse').textContent = "reject error";
-            document.getElementById('requestResponse').style.display = 'block';
-        });
-    };
-
-    function removeFriend(friendUsername) {
-        let removeFriendURL = "{{ url_for('remove_friend') }}";
-
-        axios.post(removeFriendURL, {
-            friend_username: friendUsername
-        })
-        .then(function(response) {
-            console.log(response.data);
-            if (response.data.success) {
-                // Remove friend from the list
-                let friendElement = document.getElementById('friend-' + friendUsername);
-                if (friendElement) {
-                    friendElement.remove();
-                }
-            } else {
-                console.error(response.data.error);
-            }
-        })
-        .catch(function(error) {
-            console.error('Error:', error);
-        });
+  // function to handle chat button click
+  function chat_button_clicked() {
+    let receiver = $("#receiver").val();
+    if (!receiver) {
+      alert("Please enter a username");
+      return;
     }
 
-    // this is where update friends list was before
-    // update friends list when a new friend is added
-    socket.on("update_friends_list", function(data) {
-        if (data.new_friend) {
-            let newFriendUsername = data.new_friend;
-            let friendsList = document.getElementById('friendsList');
-            let friendsSection = document.getElementById('friendsSection');
-            let lonelyMessage = document.getElementById('lonelyMessage');
-
-            if (!friendsList) {
-                if (lonelyMessage) {
-                    lonelyMessage.remove();
-                }
-                friendsList = document.createElement('ul');
-                friendsList.id = 'friendsList';
-                friendsSection.appendChild(friendsList);
-            }
-
-            let newFriendItem = document.createElement('li');
-            newFriendItem.id = "friend-" + newFriendUsername;
-            newFriendItem.classList.add('friend-item');
-            newFriendItem.setAttribute('onclick', `handleFriendClick('${newFriendUsername}')`);
-            let usernameText = document.createTextNode(newFriendUsername + " ");
-            newFriendItem.appendChild(usernameText);
-
-            if (!editMode) {
-                let statusIndicator = document.createElement('span');
-                statusIndicator.id = "status-" + newFriendUsername;
-                statusIndicator.className = "status-indicator offline";
-                newFriendItem.appendChild(statusIndicator);
-            }
-
-            friendsList.appendChild(newFriendItem);
-        } else if (data.removed_friend) {
-            let removedFriendUsername = data.removed_friend;
-            let friendElement = document.getElementById('friend-' + removedFriendUsername);
-            if (friendElement) {
-                friendElement.remove();
-            }
+    fetchFriends()
+      .then(() => {
+        // check if receiver is already a friend
+        if (isFriend(receiver)) {
+          alert(
+            'Please click on their username in the "Friends" section to start a chat.'
+          );
+        } else {
+          // if not, try adding them as a friend.
+          // i should've made the previous add friend function callable, but i'm lazy
+          chatSendFriendRequest(receiver);
         }
-        socket.emit('online', username)
-    });
+      })
+      .catch((error) => {
+        console.error("Failed to catch friends:", error);
+      });
+  }
 
-    // update friend requests list when a friend request is received
-    socket.on("update_friend_requests", function(data){
+  function fetchFriends() {
+    return axios
+      .get("{{ url_for('get_friends') }}")
+      .then(function (response) {
+        friendsList = response.data.friends;
+        console.log("Updated friends list:", friendsList);
+        return friendsList;
+      })
+      .catch(function (error) {
+        console.error("Error:", error);
+      });
+  }
 
-        // backend sends username of new friend
-        let newFriendUsername = data.new_friend;
+  function isFriend(receiver) {
+    return friendsList.includes(receiver);
+  }
 
-        // retrieve request ID of the particular friend request
-        let requestID = data.request_id;
-
-        // get all current friend request list elements
-        let incomingRequestsList = document.getElementById('incomingRequestsList');
-        let incomingRequestsSection = document.getElementById('incomingRequestsSection');
-        let noIncomingRequestsMessage = document.getElementById("noIncomingRequestsMessage");
-        
-        // remove noIncomingRequests message if exists
-        if (noIncomingRequestsMessage){
-            noIncomingRequestsMessage.style.display = 'none';
-        };
-
-        // create incoming request list if doesnt exist
-        if (!incomingRequestsList){
-            incomingRequestsList = document.createElement('ul');
-            incomingRequestsList.id = 'incomingRequestsList';
-            incomingRequestsSection.appendChild(incomingRequestsList);
+  function chatSendFriendRequest(receiver) {
+    axios
+      .post("{{ url_for('add_friend') }}", {
+        current_user: "{{ username }}",
+        friend_user: receiver,
+      })
+      .then(function (response) {
+        console.log("Response Data:", response.data);
+        const chatRequestResponse = document.getElementById(
+          "chatRequestResponse"
+        );
+        if (response.data.success) {
+          chatRequestResponse.textContent =
+            "Friend request sent to " + receiver;
+        } else {
+          chatRequestResponse.textContent =
+            "Unexpected response: " + JSON.stringify(response.data);
         }
+        chatRequestResponse.style.display = "block";
 
-        // create list item for the new friend request
-        let requestItem = document.createElement('li');
-        requestItem.id = "friend-request-" + requestID
-
-        // create text node for the username
-        let usernameText = document.createTextNode(newFriendUsername);
-        requestItem.appendChild(usernameText);
-
-        // create accept button
-        let acceptButton = document.createElement('button');
-        acceptButton.textContent = 'Accept';
-        acceptButton.onclick = function() {
-            acceptfriendRequest(requestID, this);
-        };
-        requestItem.appendChild(acceptButton);
-
-        // create reject button
-        let rejectButton = document.createElement('button');
-        rejectButton.textContent = 'Reject';
-        rejectButton.onclick = function() {
-            rejectfriendRequest(requestID, this);
-        };
-        requestItem.appendChild(rejectButton);
-
-        // append new request to the list
-        incomingRequestsList.appendChild(requestItem);
-    })
-
-    // update friends list when a friend request is sent
-    socket.on("update_sent_requests", function(data){
-        // add new sent request
-        let receiverUsername = data.receiver_username;
-        let requestID = data.request_id;
-
-        // get the sent requests elements
-        let sentRequestsList = document.getElementById('sentRequestsList');
-        let sentRequestsSection = document.getElementById('sentRequestsSection');
-        let noSentRequestsMessage = document.getElementById('noSentRequestsMessage');
-
-        // remove noSentRequestsMessage
-        if (noSentRequestsMessage){
-            noSentRequestsMessage.style.display = 'none';
+        // Set timeout to hide the message
+        setTimeout(() => {
+          chatRequestResponse.style.display = "none";
+        }, 2500);
+      })
+      .catch(function (error) {
+        console.error("Error during friend request:", error);
+        const chatRequestResponse = document.getElementById(
+          "chatRequestResponse"
+        );
+        if (
+          error.response &&
+          error.response.data &&
+          error.response.data.error
+        ) {
+          chatRequestResponse.textContent = error.response.data.error;
+        } else {
+          chatRequestResponse.textContent = "An unexpected error occurred.";
         }
+        chatRequestResponse.style.display = "block";
 
-        if (!sentRequestsList){
-            sentRequestsList = document.createElement('ul');
-            sentRequestsList.id = 'sentRequestsList';
-            sentRequestsSection.appendChild(sentRequestsList);
-        }
-
-        let requestItem = document.createElement('li');
-        requestItem.textContent = `${receiverUsername} - pending`;
-        requestItem.id = 'sent-request-' + requestID;
-
-        // append new request to list
-        sentRequestsList.appendChild(requestItem);
-    });
-
-    // update friends list when a friend request is actioned
-    socket.on("update_sent_requests_status", function(data) {
-        let requestID = data.request_id;
-        let newStatus = data.new_status;
-
-        // find request item in sent requests list, update status
-        let requestItem = document.getElementById(`sent-request-${requestID}`);
-        requestItem.remove();
-
-        // check if no more sent requests
-        let sentRequestsList = document.getElementById('sentRequestsList');
-        let sentRequestsSection = document.getElementById('sentRequestsSection');
-        let noSentRequestsMessage = document.getElementById('noSentRequestsMessage');
-        
-        if (sentRequestsList && sentRequestsList.children.length === 0) {
-            // If there are none, display the "No sent requests" message
-            if (noSentRequestsMessage) {
-                noSentRequestsMessage.style.display = 'block'; // Make existing message visible
-            } else {
-                // Create the "No sent requests" message if it doesn't exist
-                noSentRequestsMessage = document.createElement('p');
-                noSentRequestsMessage.id = 'noSentRequestsMessage';
-                noSentRequestsMessage.textContent = 'No sent requests. Go and add someone!';
-                sentRequestsSection.appendChild(noSentRequestsMessage);
-            }
-        }
-    });
-
-    socket.on("waiting", function(data) {
-        console.log("Waiting for " + data.receiver + " to join the room...");
-    });
-
-    // function to join a room with a friend
-    async function click_join(friendUsername) {
-        // use friend's username to join room
-        socket.emit("join", username, friendUsername, (res) => { 
-            if (typeof res != "number") {
-                alert(res); // alert of error
-                return; // escape early
-            }
-            room_id = res; // set room id from response
-            Cookies.set("room_id", room_id); // set cookie
-
-            // show message input box and hide chat box
-        $("#chat_box").hide();
-        $("#input_box").show();
-        });
-    }
-
-    // when window is closed, user logs out
-    window.addEventListener('beforeunload', function(event) {
-        navigator.sendBeacon("{{ url_for('logout') }}");
-    });
-
-    // function to logout
-    function logout() {
-        // Clear the browser session history
-        window.history.pushState(null, null, window.location.href);
-        window.onpopstate = function () {
-            window.history.go(1);
-        };
-
-        // Redirect to the logout URL
-        window.location.href = "{{ url_for('logout') }}";
-    }
-
-    // disable chat button if no receiver is entered
-    document.getElementById('receiver').addEventListener('keyup', function(){
-        let receiverInput = document.getElementById('receiver').value;
-        let chatButton = document.getElementById('chatButton').disabled = !receiverInput.trim();
-    })
-
-    // function to handle chat button click
-    function chat_button_clicked(){
-        let receiver = $("#receiver").val();
-        if (!receiver) {
-            alert("Please enter a username");
-            return;
-        }
-
-        fetchFriends().then(() => {
-            // check if receiver is already a friend
-            if (isFriend(receiver)){
-                alert("Please click on their username in the \"Friends\" section to start a chat.");
-            } else {
-                // if not, try adding them as a friend.
-                // i should've made the previous add friend function callable, but i'm lazy
-                chatSendFriendRequest(receiver);
-            }
-        }).catch(error => {
-            console.error('Failed to catch friends:', error);
-        });
-    }
-
-    function fetchFriends() {
-        return axios.get("{{ url_for('get_friends') }}")
-        .then(function(response){
-            friendsList = response.data.friends;
-            console.log('Updated friends list:', friendsList);
-            return friendsList
-        })
-        .catch(function(error){
-            console.error('Error:', error)
-        });
-    }
-
-    function isFriend(receiver){
-        return friendsList.includes(receiver);
-    }
-
-    function chatSendFriendRequest(receiver){
-        axios.post("{{ url_for('add_friend') }}", {
-            current_user: "{{ username }}",
-            friend_user: receiver
-        })
-        .then(function(response){
-            console.log("Response Data:", response.data);
-            const chatRequestResponse = document.getElementById('chatRequestResponse');
-            if (response.data.success) {
-                chatRequestResponse.textContent = "Friend request sent to " + receiver;
-            } else {
-                chatRequestResponse.textContent = "Unexpected response: " + JSON.stringify(response.data);
-            }
-            chatRequestResponse.style.display = 'block';
-            
-            // Set timeout to hide the message
-            setTimeout(() => {
-                chatRequestResponse.style.display = 'none';
-            }, 2500);
-        })
-        .catch(function(error){
-           console.error('Error during friend request:', error);
-            const chatRequestResponse = document.getElementById('chatRequestResponse');
-            if (error.response && error.response.data && error.response.data.error) {
-                chatRequestResponse.textContent = error.response.data.error;
-            } else {
-                chatRequestResponse.textContent = "An unexpected error occurred.";
-            }
-            chatRequestResponse.style.display = 'block';
-
-            // Set timeout to hide the message
-            setTimeout(() => {
-                chatRequestResponse.style.display = 'none';
-            }, 2500);
-        });
-    }
-
-
+        // Set timeout to hide the message
+        setTimeout(() => {
+          chatRequestResponse.style.display = "none";
+        }, 2500);
+      });
+  }
 </script>
 {% endblock %}

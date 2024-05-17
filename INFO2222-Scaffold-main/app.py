@@ -4,19 +4,20 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
+from articles import fetch_articles
 from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
 from flask import session
 from flask_session import Session
 from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO, emit
-from flask_cors import CORS
+# from flask_cors import CORS
 from datetime import timedelta
 from functools import wraps
 from sqlalchemy.orm import sessionmaker
 import db
 import secrets
 from db import engine, Session
-from models import User, FriendRequest
+from models import Article, Comment, User, FriendRequest
 from shared_state import user_sessions
 from bleach import clean # for sanitizing user input
 
@@ -442,6 +443,102 @@ def add_security_headers(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
+@app.route("/knowledge_repository")
+def knowledge_repository():
+    # Fetch data from your database or service layer
+    articles = fetch_articles()  # This should return a list of article objects
+    return render_template("knowledge_repository.jinja", articles=articles)
+
+import logging
+logging.basicConfig(level=logging.INFO)
+
+# @app.route('/post_article', methods=['POST'])
+# def post_article():
+#     if 'username' not in session:
+#         logging.error("No username in session")
+#         return jsonify({'error': 'Authentication required'}), 401
+
+#     title = request.json.get('title', 'No Title Provided')
+#     content = request.json.get('content')
+#     username = session.get('username')  # Get username from session
+
+    
+#     if not content:
+#         logging.error("No content provided")
+#         return jsonify({'error': 'Content is required'}), 400
+
+#     db_session = Session()
+#     try:
+#         new_article = Article(title=title, content=content, author_id=session['username'])
+#         db_session.add(new_article)
+#         db_session.commit()
+#         logging.info(f"Article {new_article.id} created successfully")
+#         return jsonify({'message': 'Article created', 'article_id': new_article.id}), 201
+#     except Exception as e:
+#         db_session.rollback()
+#         logging.error(f"Error posting article: {e}")
+#         return jsonify({'error': 'Database error', 'details': str(e)}), 500
+#     finally:
+#         db_session.close()
+
+@app.route('/post_article', methods=['POST'])
+@login_required
+def post_article():
+    title = request.json.get('title', 'No Title Provided')
+    content = request.json.get('content')
+    username = session.get('username')  # Get username from session
+
+    if not title or not content:
+        return jsonify({'error': 'Title and content are required'}), 400
+
+    db_session = Session()
+    try:
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        new_article = Article(title=title, content=content, author=user)
+        db_session.add(new_article)
+        db_session.commit()
+        return jsonify({'message': 'Article created', 'article_id': new_article.id}), 201
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({'error': 'Database error', 'details': str(e)}), 500
+    finally:
+        db_session.close()
+
+
+@app.route('/get_my_posts', methods=['GET'])
+@login_required
+def get_my_posts():
+    username = session.get('username')
+    db_session = Session()
+    try:
+        user = db_session.query(User).filter_by(username=username).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        articles = db_session.query(Article).filter_by(author=user).all()
+        return jsonify([{'title': article.title, 'content': article.content, 'created_at': article.created_at.isoformat()} for article in articles])
+    finally:
+        db_session.close()
+
+
+@app.route('/post_comment', methods=['POST'])
+def post_comment():
+    article_id = request.json.get('article_id')
+    content = request.json.get('content')
+    if not content:
+        return jsonify({'error': 'Content is required'}), 400
+
+    db_session = Session()
+    new_comment = Comment(content=content, article_id=article_id, author_id=session['username'])
+    db_session.add(new_comment)
+    db_session.commit()
+    return jsonify({'message': 'Comment added', 'comment_id': new_comment.id}), 201
+
+
 
 ###########################
 # DEPRECATED - ENCRYPTION #

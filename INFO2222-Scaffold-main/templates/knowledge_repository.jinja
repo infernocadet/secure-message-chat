@@ -1,0 +1,124 @@
+{% extends 'base.jinja' %} {% block additional_css %}
+<link
+  href="{{ url_for('static', filename='css/knowledge_repo.css') }}"
+  rel="stylesheet"
+/>
+{% endblock %} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Sidebar -->
+    {#
+    <nav class="col-md-2 d-none d-md-block bg-dark sidebar">
+      <div class="sidebar-sticky">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link active" href="{{ url_for('index') }}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('search') }}">Search</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('create_article') }}"
+              >Create</a
+            >
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('activity') }}">Activity</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    #}
+
+    <!-- Main content -->
+    <main role="main" class="col-md-8 ml-sm-auto col-lg-9 px-4">
+      <h1 class="h2">Knowledge Repository</h1>
+      <div class="post-article">
+        <input
+          type="text"
+          id="articleTitle"
+          class="form-control"
+          placeholder="Article Title"
+        />
+        <textarea
+          class="form-control"
+          id="articleContent"
+          placeholder="Start a thread..."
+        ></textarea>
+        <button id="postButton" class="btn btn-primary mt-2">Post</button>
+        <button id="postButton" class="btn btn-primary mt-2" onclick="logout()">
+          Logout
+        </button>
+      </div>
+      <div id="articles"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    axios
+      .get("/get_my_posts")
+      .then(function (response) {
+        const articlesDiv = document.getElementById("articles");
+        response.data.forEach((article) => {
+          const newArticle = `<div class="article">
+                                <h3>${article.title}</h3>
+                                <p>${article.content}</p>
+                                <small>${new Date(
+                                  article.created_at
+                                ).toLocaleString()}</small>
+                              </div>`;
+          articlesDiv.innerHTML += newArticle;
+        });
+      })
+      .catch(function (error) {
+        console.error("Error fetching posts:", error);
+      });
+  });
+
+  document.getElementById("postButton").addEventListener("click", function () {
+    var content = document.getElementById("articleContent").value;
+    var title = document.getElementById("articleTitle").value;
+    axios
+      .post("/post_article", {
+        title: title, // Assuming you want to add a title in the future
+        content: content,
+      })
+      .then(function (response) {
+        console.log(response.data);
+        // Add article to the front end dynamically
+        var articlesDiv = document.getElementById("articles");
+        var displayTitle = response.data.title || title;
+        var newArticle = `<div class="article">
+                          <h3>${displayTitle}</h3>
+                          <p>${content}</p>
+                          <small>Just now</small>
+                        </div>`;
+        articlesDiv.innerHTML += newArticle;
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+  });
+  // when window is closed, user logs out
+  window.addEventListener("beforeunload", function (event) {
+    navigator.sendBeacon("{{ url_for('logout') }}");
+  });
+
+  // function to logout
+  function logout() {
+    // Clear the browser session history
+    window.history.pushState(null, null, window.location.href);
+    window.onpopstate = function () {
+      window.history.go(1);
+    };
+
+    // Redirect to the logout URL
+    window.location.href = "{{ url_for('logout') }}";
+  }
+</script>
+{% endblock %}

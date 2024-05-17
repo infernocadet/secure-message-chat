@@ -13,7 +13,8 @@ or use SQLite, if you're not into fancy ORMs (but be mindful of Injection attack
 from sqlalchemy import String, Table, Column, Integer, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import Dict, List
-
+from sqlalchemy import DateTime
+from datetime import datetime
 # for friends database, using Table, Column, Integer, ForeignKey & relationship
 
 # data models
@@ -106,3 +107,32 @@ class Room():
         if user not in self.dict.keys():
             return None
         return self.dict[user]
+
+
+class Article(Base):
+    __tablename__ = "articles"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    author_id = Column(String, ForeignKey('user.username'))
+    
+    # Relationships
+    author = relationship('User', back_populates='articles')
+    comments = relationship('Comment', back_populates='article', cascade="all, delete-orphan")
+
+User.articles = relationship('Article', order_by=Article.id, back_populates='author')
+
+class Comment(Base):
+    __tablename__ = "comments"
+    id = Column(Integer, primary_key=True)
+    content = Column(Text, nullable=False)
+    article_id = Column(Integer, ForeignKey('articles.id'))
+    author_id = Column(String, ForeignKey('user.username'))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    article = relationship('Article', back_populates='comments')
+    author = relationship('User', back_populates='comments')
+
+User.comments = relationship('Comment', order_by=Comment.id, back_populates='author')
