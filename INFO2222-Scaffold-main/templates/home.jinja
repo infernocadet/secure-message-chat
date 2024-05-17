@@ -265,7 +265,6 @@
         <section id="message_box"></section>
 
         <section id="input_box" style="display: none;">
-            <p class="text">Message:</p>
             <input id="message" placeholder="message">
             <button class="btn btn-primary" onclick="send()">Send</button>
             <button class="btn btn-secondary" onclick="leave()">Leave Room</button>
@@ -585,9 +584,7 @@
     function handleFriendClick(friendUsername){
         if (editMode){
             showRemoveFriendModal(friendUsername);
-        } else {
-            click_join(friendUsername);
-        }
+        }; // opportunity here to click and open profile
     }
 
     // adding friend function
