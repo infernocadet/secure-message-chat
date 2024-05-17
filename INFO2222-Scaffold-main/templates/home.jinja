@@ -290,7 +290,7 @@
                     <ul id="friendsList">
                         {% for item in friends %}
                             <li id="friend-{{ item.username }}" class="friend-item" onclick="handleFriendClick('{{ item.username }}')">
-                                {{ item.username }} <span id="status-{{ item.username }}" class="status-indicator offline"></span>
+                                {{ item.username }} - {{ get_role_display(item.role) }} <span id="status-{{ item.username }}" class="status-indicator offline"></span>
                             </li>
                         {% endfor %}
                     </ul>

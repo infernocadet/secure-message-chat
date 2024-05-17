@@ -49,6 +49,17 @@ Session(app)
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
 
+def get_role_display(role):
+    role_map = {
+        0: "Student",
+        1: "Academic",
+        2: "Admin Staff",
+        3: "Admin User"
+    }
+    return role_map.get(role, "Unknown")
+
+app.jinja_env.globals.update(get_role_display=get_role_display)
+
 # sanitize user input
 # you will see that i have used this function in the login and signup routes, and addfriend routes to sanitise any user data that is sent to the server
 # jinja automatically escapes html attributes that return back to the client using the double curly braces {{ }} so we don't need to worry about that
@@ -92,6 +103,11 @@ def login_user():
 
     username = sanitize_input(request.json.get("username"))
     client_hashed_password = request.json.get("password")
+    role = request.json.get("role")
+    if role == 'student':
+        role = 0
+    else:
+        role = 1
 
     user =  db.get_user(username)
 
@@ -100,10 +116,16 @@ def login_user():
 
     try:
         if user and bcrypt.check_password_hash(user.password, client_hashed_password):
-            session.clear()
-            session.permanent = True
-            session['username'] = username
-            return url_for('home', username=username)
+            user_role = db.get_role(username)
+            # if user is student and trying to log into staff not allowed
+            # however if staff and trying log into student then also nono
+            if (user_role == 0 and role != 0) or (user_role != 0 and role == 0): 
+                return jsonify({"error": "Bad login. Try again"}), 401
+            else:
+                session.clear()
+                session.permanent = True
+                session['username'] = username
+                return url_for('home', username=username)
 
         else:
             return jsonify({"error": "Incorrect password"}), 401
@@ -128,16 +150,14 @@ def signup_user():
 
     username = sanitize_input(request.json.get("username"))
     client_hashed_password = request.json.get("password")
-    
-    # DEPRECATED - no more public key bs
-    # public_key = request.json.get("publicKey")
+    role = 0 # student defualt role
 
     if db.get_user(username) is None:
 
         hashed_password = bcrypt.generate_password_hash(
             client_hashed_password).decode('utf-8')
         
-        db.insert_user(username, hashed_password)
+        db.insert_user(username, hashed_password, role)
         session.clear()
         session.permanent = True
         session['username'] = db.get_user(username).username

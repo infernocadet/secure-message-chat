@@ -41,6 +41,7 @@ class User(Base):
     __tablename__ = "user"
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
+    role: Mapped[int] = mapped_column(Integer) # [0, 1, 2, 3] = [student, academic, admin-staff, admin-user]
     
     # deprecated - no more keys
     # public_key: Mapped[str] = mapped_column(Text, nullable=True) # Storing public key as text

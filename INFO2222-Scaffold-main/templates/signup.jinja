@@ -3,32 +3,53 @@ Sign up page, pretty much the same as login.
 -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
+    {# DEPRECATED ENCRYPTION FUNCTIONS #}
+    {# <script src="/static/js/signup/signup-indexeddb.js"></script> #}
+    {# <script src="/static/js/signup/signup-keypairgeneration.js"></script> #}
+    {# <script src="/static/js/signup/signup-signup.js"></script> #}
 {% extends 'base.jinja' %}
 
 
 {% block content %} 
 
     
-    <h1>Sign Up</h1>
-    <p>Username</p>
-    <input id="username"/>
-    <p id="usernameHelp" style="color: red;"></p>
-    <p>Password</p>
-    <div style="position: relative;">
-        <input id="password" type="password" style="padding-right: 30px;"/>
-        <button id="togglePassword" style="position: relative; right: 0; top: 0;" onclick="togglePasswordVisibility()">👁️</button>
-    </div>
-    <p id="passwordHelp" style="color: red;"></p>
-    <button id="signupButton" disabled>Sign up</button>
-    <div>
-        <a href="{{ url_for('login') }}">Already have an account? Log in here</a>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card mt-5">
+                    <div class="card-header text-center">
+                        <h2>Sign Up</h2>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" class="form-control" placeholder="Enter username">
+                                <small id="usernameHelp" class="form-text text-danger"></small>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <div class="input-group">
+                                    <input type="password" id="password" class="form-control" placeholder="Enter password">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()">👁️</button>
+                                    </div>
+                                </div>
+                                <small id="passwordHelp" class="form-text text-danger"></small>
+                            </div>
+                            <button type="button" id="signupButton" class="btn btn-primary btn-block" disabled>Sign up</button>
+                            <div class="text-center mt-3">
+                                <a href="{{ url_for('login') }}">Already have an account? Log in here</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    {# DEPRECATED ENCRYPTION FUNCTIONS #}
-    {# <script src="/static/js/signup/signup-indexeddb.js"></script> #}
-    {# <script src="/static/js/signup/signup-keypairgeneration.js"></script> #}
-    {# <script src="/static/js/signup/signup-signup.js"></script> #}
+
+
 
     <script>
         let passwordValid = false;
