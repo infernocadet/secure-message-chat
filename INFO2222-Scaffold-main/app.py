@@ -85,7 +85,7 @@ def login_required(f):
 # index page
 @app.route("/")
 def index():
-    return render_template("index.jinja")
+    return render_template("signup.jinja")
 
 
 # login page

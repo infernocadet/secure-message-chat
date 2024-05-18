@@ -98,8 +98,23 @@
         align-items: center;
     }
 
-    aside h2::before {
-        content: '📂'; /* Example icon, replace with relevant icons */
+    #friendsSection h2::before {
+        content: '👥'; 
+        margin-right: 8px;
+    }
+
+    #incomingRequestsSection h2::before {
+        content: '📨'; 
+        margin-right: 8px;
+    }
+
+    #sentRequestsSection h2::before {
+        content: '📤'; 
+        margin-right: 8px;
+    }
+
+    #roomsSection h2::before {
+        content: '💬'; 
         margin-right: 8px;
     }
 
@@ -129,6 +144,11 @@
         height: 10px;
         border-radius: 50%;
         margin-left: 5px;
+    }
+    .role-display {
+        font-style: italic;
+        color: gray;
+        margin-left: 8px;
     }
 
     .online {
@@ -290,7 +310,7 @@
                     <ul id="friendsList">
                         {% for item in friends %}
                             <li id="friend-{{ item.username }}" class="friend-item" onclick="handleFriendClick('{{ item.username }}')">
-                                {{ item.username }} - {{ get_role_display(item.role) }} <span id="status-{{ item.username }}" class="status-indicator offline"></span>
+                                {{ item.username }} <span class="role-display">{{ get_role_display(item.role) }}</span> <span id="status-{{ item.username }}" class="status-indicator offline"></span>
                             </li>
                         {% endfor %}
                     </ul>
