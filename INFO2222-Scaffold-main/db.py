@@ -141,3 +141,15 @@ def update_role(username: str, role: int):
             return jsonify({'message': 'Role updated successfully'}), 200
         else:
             return jsonify({'message': 'User not found'}), 404
+
+def insert_message(content, sender_username, room_id):
+    with Session(engine) as session:
+        message = Message(content=content, sender_username=sender_username, room_id=room_id)
+        session.add(message)
+        session.commit()
+
+
+def get_messages(room_id):
+    with Session(engine) as session:
+        messages = session.query(Message).filter_by(room_id=room_id).order_by(Message.id).all()
+        return [{'content': msg.content, 'sender': msg.sender_username} for msg in messages]

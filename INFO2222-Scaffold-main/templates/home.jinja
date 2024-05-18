@@ -447,7 +447,9 @@
     socket.on("incoming", (msg, color="black") => {
         add_message(msg, color);
     })
-    
+
+        
+
     // we'll send the message to the server by emitting a "send" event
     async function send() {
         let message = $("#message").val();
@@ -480,13 +482,19 @@
         $("#chat_box").show();
     }
 
+    socket.on("message_history", function(messages) {
+        messages.forEach(message => {
+            add_message(`${message.sender}: ${message.content}`, "black");
+        });
+    });
+
     // function to add a message to the message box
-    // called when an incoming message has reached a client
     function add_message(message, color) {
         let box = $("#message_box");
         let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
         box.append(child);
     }
+
     // Function to show the New Chat modal
     function showNewChatModal() {
         $('#newChatModal').modal('show');

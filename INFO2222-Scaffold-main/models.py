@@ -90,7 +90,21 @@ class Room(Base):
         secondary=user_room_table,
         back_populates="rooms"
     )
+    messages: Mapped[List["Message"]] = relationship(
+        "Message",
+        back_populates="room",
+        cascade="all, delete-orphan"
+    )
 
+class Message(Base):
+    __tablename__ = 'message'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    content: Mapped[str] = mapped_column(Text)
+    sender_username: Mapped[str]  = mapped_column(String, ForeignKey('user.username'))
+    room_id: Mapped[int] = mapped_column(Integer, ForeignKey('room.id'))
+
+    sender: Mapped["User"] = relationship("User")
+    room: Mapped["Room"] = relationship("Room", back_populates="messages")
 
 # stateful counter used to generate the room id
 # class Counter():

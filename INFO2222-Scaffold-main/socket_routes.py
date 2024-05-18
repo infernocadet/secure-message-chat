@@ -79,6 +79,7 @@ def disconnect():
 # send message event handler
 @socketio.on("send")
 def send(username, message, room_id):
+    db.insert_message(message, username, room_id)
     emit("incoming", (f"{username}: {message}"), to=room_id)
 
 @socketio.on("create")
@@ -92,6 +93,9 @@ def create(data):
     # automatically join the room after creation
     join_room(room_id)
     emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id)
+
+    
+    
     return room_id
 
 
@@ -102,6 +106,8 @@ def join(sender_name: str, room_id: int):
 
     # emit messages to notify users
     emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id)
+    messages = db.get_messages(room_id)
+    emit("message_history", messages, to=request.sid)
     return room_id
 
 
