@@ -125,3 +125,19 @@ def create_room(name: str, usernames: list) -> int:
         
         session.commit()
         return new_room.id
+
+def fetch_users():
+    with Session(engine) as session:
+        users = session.query(User).filter(User.role != 3).all()  # Exclude Admin User role
+        users_data = [{'username': user.username, 'role': user.role} for user in users]
+    return jsonify(users_data)
+
+def update_role(username: str, role: int):
+    with Session(engine) as session:
+        user = session.query(User).filter_by(username=username).first()
+        if user:
+            user.role = role
+            session.commit()
+            return jsonify({'message': 'Role updated successfully'}), 200
+        else:
+            return jsonify({'message': 'User not found'}), 404

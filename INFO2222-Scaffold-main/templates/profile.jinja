@@ -1,0 +1,138 @@
+<!-- 
+User profile page, accessed after logging in and clicking on my profile in home.jinja
+ -->
+{% extends 'base.jinja' %}
+
+
+{% block content %} 
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="{{ url_for('home') }}">Home</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Profile</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="profileForm">
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" class="form-control" id="username" value="{{ username }}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="role">Role</label>
+                                <input type="text" class="form-control" id="role" value="{{ get_role_display(role) }}" readonly>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if role == 3 %}
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Manage Users</h2>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function get_role_display(role) {
+            switch(role) {
+                case 0:
+                    return "Student";
+                case 1:
+                    return "Academic";
+                case 2:
+                    return "Admin Staff";
+                case 3:
+                    return "Admin User";
+                default:
+                    return "Unknown";
+            }
+        }
+
+        {% if role == 3 %}
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchUsers();
+
+            async function fetchUsers() {
+                try {
+                    fetch_url = '{{ url_for('fetch_users') }}';
+                    const response = await axios.get(fetch_url);
+                    const users = response.data;
+                    const usersTable = document.getElementById('usersTable');
+
+                    users.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${user.username}</td>
+                            <td>
+                                <select class="form-control" this.value)">
+                                    <option value="0" ${user.role == 0 ? 'selected' : ''}>Student</option>
+                                    <option value="1" ${user.role == 1 ? 'selected' : ''}>Academic</option>
+                                    <option value="2" ${user.role == 2 ? 'selected' : ''}>Admin Staff</option>
+                                    <option value="3" ${user.role == 3 ? 'selected' : ''}>Admin User</option>
+                                </select>
+                            </td>
+                            <td><button class="btn btn-primary" onclick="updateUserRole('${user.username}')">Update Role</button></td>
+                        `;
+                        usersTable.appendChild(row);
+                    }); 
+                } catch (error) {
+                    console.error('Error fetching users:', error);
+                }
+            }
+
+            async function updateUserRole(username, role) {
+                try {
+                    url_update = '{{ url_for('update_user_role') }}';
+                    const response = await axios.post(url_update, {
+                        username: username,
+                        role: role
+                    });
+                    if (!response.data.success)  {
+                        throw new Error("Failed to update user role");
+                    }
+                } catch (error) {
+                    console.error('Error updating user role:', error);
+                }
+            }
+        });
+    
+        {% endif %}
+
+    </script>
+    
+{% endblock %}

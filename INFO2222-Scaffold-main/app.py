@@ -38,6 +38,10 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javas
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
+CORS(app)  # This will enable CORS for all routes
+socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for WebSocket connections
+
+
 
 bcrypt = Bcrypt(app)
 
@@ -94,6 +98,37 @@ def login():
     
     return render_template("login.jinja")
 
+# profile page, displays the profile of a user
+@app.route("/profile")
+@login_required
+def profile():
+    user_username = session.get("username")
+    if not user_username:
+        return redirect(url_for('login'))
+    user = db.get_user(user_username)
+    if user is None:
+        return redirect(url_for('login'))
+    user_role = db.get_role(user_username)
+
+
+    return render_template("profile.jinja", username=user_username, role=user_role)
+
+# fetches users for admin
+@app.route("/fetch_users", methods=['GET'])
+@login_required
+def fetch_users():
+    """
+    Requests user name and role data of all users from database. 
+    Returns as json
+    """
+    return db.fetch_users()
+
+@app.route("/update_user_role", methods=['POST'])
+def update_user_role():
+    data = request.json
+    username = data.get("username")
+    role = data.get("role")
+    return db.update_role(username, role)
 
 # handles a post request when the user clicks the log in button
 @app.route("/login/user", methods=["POST"])

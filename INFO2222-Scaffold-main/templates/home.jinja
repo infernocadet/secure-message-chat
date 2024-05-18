@@ -3,7 +3,7 @@
 -->
 {% extends 'base.jinja' %}
 
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 {% block content %} 
 <style>
     body {
@@ -47,6 +47,18 @@
 
     .nav-right button {
         margin-left: 10px;
+    }
+
+    .profile-link {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .profile-icon {
+        font-size: 30px;
+        margin-right: 10px;
     }
 
     #content-wrapper {
@@ -269,7 +281,12 @@
 <nav>
     <ul>
         <div class="nav-left">
-            <li>Logged in as: <strong>{{ username }}</strong></li>
+            <li>
+                <a href="{{ url_for('profile') }}" class="profile-link">
+                    <i class="fas fa-user-circle profile-icon"></i>
+                    <span><strong>{{ username }}</strong></span>
+                </a>
+            </li>
         </div>
         <div class="nav-right">
             <li><button class="btn btn-outline-danger" onclick="logout()">Logout</button></li>
@@ -931,7 +948,7 @@
     }
 
 
-    function fetchFriends() {
+    function  Friends() {
         return axios.get("{{ url_for('get_friends') }}")
         .then(function(response){
             friendsList = response.data.friends;
