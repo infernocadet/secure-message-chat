@@ -100,15 +100,24 @@ def create(data):
 
 
 @socketio.on("join")
-def join(sender_name: str, room_id: int):
-    # join the room
+def join(data):
+    sender_name = data.get('sender_name')
+    room_id = data.get('room_id')
+
+    if not sender_name or not room_id:
+        return {"success": False, "message": "Missing sender name or room ID"}
+
+    # Join the room
     join_room(room_id)
 
-    # emit messages to notify users
+    # Emit messages to notify users
     emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id)
+    
+    # Retrieve and emit message history to the joining user
     messages = db.get_messages(room_id)
     emit("message_history", messages, to=request.sid)
-    return room_id
+    
+    return {"success": True, "room_id": room_id}
 
 
 # leave room event handler

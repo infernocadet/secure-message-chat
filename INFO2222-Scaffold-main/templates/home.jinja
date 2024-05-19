@@ -297,7 +297,7 @@
 </nav>
 <div id="content-wrapper">
     <div id="main-content">
-        <h1>Messaging App</h1>
+        <h1 id="page-title">Join a chat!</h1>
 
         <section id="message_box"></section>
 
@@ -382,7 +382,7 @@
                 {% if rooms %}
                     <ul id="roomsList">
                         {% for room in rooms %}
-                            <li id="room-{{ room.id }}" class="room-item" onclick="joinRoom({{ room.id }})">
+                            <li id="room-{{ room.id }}" class="room-item" onclick="joinRoom({{ room.id }}, '{{ room.name }}')">
                                 {{ room.name }}
                             </li>
                         {% endfor %}
@@ -458,26 +458,11 @@
         socket.emit("send", username, message, room_id);  
     } 
 
-    // we emit a join room event to the server to join a room
-    function join_room() { 
-        let receiver = $("#receiver").val();
-        socket.emit("join", username, receiver, (res) => {
-            if (typeof res != "number") {
-                alert(res);
-                return;
-            }
-            room_id = res;
-            Cookies.set("room_id", room_id);
-            $("#chat_box").hide();
-            $("#input_box").show();
-        });
-    }
-
-    // function when the user clicks on "Leave Room"
-    // emits a "leave" event, telling the server that we want to leave the room
+    // Function to leave the room
     function leave() {
         Cookies.remove("room_id");
         socket.emit("leave", username, room_id);
+        updatePageTitle("Join a chat")
         $("#input_box").hide();
         $("#chat_box").show();
     }
@@ -503,9 +488,10 @@
     socket.on("new_room", function(data) {
         const roomId = data.room_id;
         const roomName = data.room_name;
-        const roomItem = `<li id="room-${roomId}" class="room-item" onclick="joinRoom(${roomId})">${roomName}</li>`;
+        const roomItem = `<li id="room-${roomId}" class="room-item" onclick="joinRoom(${roomId}, '${roomName}')">${roomName}</li>`;
         $('#roomsList').append(roomItem);
     });
+
 
     // function to create new chat
     function createChat() {
@@ -535,21 +521,29 @@
             $("#input_box").show();
         });
     }
+    // Function to update the page title
+    function updatePageTitle(title) {
+        document.getElementById('page-title').textContent = title;
+    }
 
-    function joinRoom(roomId) {
-        socket.emit("join", username, roomId, (res) => {
-            if (typeof res != "number") {
+    // Example joinRoom function
+    function joinRoom(roomId, roomName) {
+        const senderName = "{{ username }}";
+        console.log(roomId, roomName)
+        // Emit a join event to the server with the roomId
+        socket.emit("join", { sender_name: senderName, room_id: roomId }, (res) => {
+            {# if (typeof res != "number") {
                 alert(res);
                 return;
-            }
-
+            } #}
             room_id = res;
-            Cookies.set("room_id", room_id);
-
+            Cookies.set("room_id", room_id)
+            updatePageTitle(roomName)
             $("#chat_box").hide();
             $("#input_box").show();
         });
     }
+
 
         // handling friend online status update
     socket.on("friend_online", function(data){
