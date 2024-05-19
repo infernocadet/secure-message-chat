@@ -134,13 +134,16 @@ def fetch_users():
 
 def update_role(username: str, role: int):
     with Session(engine) as session:
+        new_role = role
         user = session.query(User).filter_by(username=username).first()
+        print(f"New role: {new_role}. Old role: {user.role}")
         if user:
+            print("updating role now")
             user.role = role
             session.commit()
-            return jsonify({'message': 'Role updated successfully'}), 200
         else:
             return jsonify({'message': 'User not found'}), 404
+    return jsonify({'message': 'Role updated successfully'}), 200
 
 def insert_message(content, sender_username, room_id):
     with Session(engine) as session:

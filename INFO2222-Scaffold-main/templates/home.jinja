@@ -938,11 +938,6 @@
         });
     }
 
-    // when window is closed, user logs out
-    window.addEventListener('beforeunload', function(event) {
-        navigator.sendBeacon("{{ url_for('logout') }}");
-    });
-
     // function to logout
     function logout() {
         // Clear the browser session history

@@ -81,7 +81,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "username" not in session:
-            return redirect(url_for('login'))
+            print("---------------NOT LOGGED IN---------------")
+            # return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -127,8 +128,11 @@ def fetch_users():
 def update_user_role():
     data = request.json
     username = data.get("username")
-    role = data.get("role")
-    return db.update_role(username, role)
+    role = int(data.get("role"))
+    print(f"Updating role for {username} to {role}")
+    response = db.update_role(username, role)
+    print(db.get_role(username))
+    return response
 
 # handles a post request when the user clicks the log in button
 @app.route("/login/user", methods=["POST"])
@@ -195,7 +199,7 @@ def signup_user():
         db.insert_user(username, hashed_password, role)
         session.clear()
         session.permanent = True
-        session['username'] = db.get_user(username).username
+        session['username'] = username
         return url_for('home', username=username)
     return "Error: User already exists!"
 
@@ -215,6 +219,7 @@ def home():
     current_user_username = session.get("username")
 
     if not current_user_username:
+        print("line 218")
         return redirect(url_for('login'))
 
     db_session = Session()
@@ -265,9 +270,11 @@ def add_friend():
 
     try:
         if current_user_username != session.get("username"):
+            print("line 269")
             return redirect(url_for('login'))
     except Exception as e:
         print(e)
+        print("line 273")
         return redirect(url_for('login'))
 
     db_session = Session()
@@ -500,20 +507,6 @@ def add_security_headers(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
-
-###########################
-# DEPRECATED - ENCRYPTION #
-###########################
-
-# encryption based methods
-# @app.route("/get_public_key/<username>", methods=['GET'])
-# @login_required
-# def get_public_key(username):
-#     user = db.get_user(username)
-#     if user:
-#         return jsonify({"public_key": user.public_key}), 200
-#     else:
-#         return jsonify({"error": "User not found"}), 404
         
 
 if __name__ == '__main__':
