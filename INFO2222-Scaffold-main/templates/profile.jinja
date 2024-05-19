@@ -4,16 +4,16 @@
 {% block content %}
 <style>
     body {
-        background-color: #343a40;
-        color: #f8f9fa;
+        background-color: #f8f9fa;
+        color: #343a40;
     }
 
     .navbar {
-        background-color: #343a40;
+        background-color: #f8f9fa;
     }
 
     .navbar .navbar-brand, .navbar .nav-link, .navbar .btn {
-        color: #f8f9fa !important;
+        color: #343a40 !important;
     }
 
     .container {
@@ -21,15 +21,15 @@
     }
 
     .card {
-        background-color: #495057;
-        color: #f8f9fa;
+        background-color: #ffffff;
+        color: #343a40;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         border-radius: 8px;
     }
 
     .card-header {
-        background-color: #6c757d;
-        color: white;
+        background-color: #e9ecef;
+        color: #343a40;
         border-radius: 8px 8px 0 0;
         padding: 15px;
     }
@@ -40,29 +40,30 @@
 
     .form-group label {
         font-weight: bold;
+        color: #343a40;
     }
 
     .btn-primary {
-        background-color: #495057;
+        background-color: #007bff;
         border: none;
-        color: #f8f9fa;
+        color: #ffffff;
     }
 
     .btn-secondary {
         background-color: #6c757d;
         border: none;
-        color: #f8f9fa;
+        color: #ffffff;
     }
 
     .btn-danger {
         background-color: #dc3545;
         border: none;
-        color: #f8f9fa;
+        color: #ffffff;
     }
 
     .table {
         margin-bottom: 0;
-        color: #f8f9fa;
+        color: #343a40;
     }
 
     .table th, .table td {
@@ -70,8 +71,8 @@
     }
 
     .modal-header {
-        background-color: #495057;
-        color: white;
+        background-color: #e9ecef;
+        color: #343a40;
     }
 
     .modal-footer .btn {
@@ -83,9 +84,10 @@
     }
 
     .modal-footer .btn-primary {
-        background-color: #495057;
+        background-color: #007bff;
     }
 </style>
+
 
 <nav class="navbar navbar-expand-lg navbar-light">
     <a class="navbar-brand" href="{{ url_for('home') }}">Home</a>

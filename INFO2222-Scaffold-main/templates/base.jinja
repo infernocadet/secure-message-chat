@@ -9,6 +9,15 @@ this is equivalent to a bunch of glob imports -> import * from jquery.
 Yeah I know it's pretty ugly...
 -->
 <!DOCTYPE html>
+<style>
+    .main-background {
+        background: url('/static/images/backgroundimage.jpeg') no-repeat center center;
+        background-size: cover;
+        width: 100%;
+        position: relative;
+    }
+
+</style>
 <html>
     <head>
         <title>Secure Messaging Application</title> 
@@ -21,7 +30,7 @@ Yeah I know it's pretty ugly...
         <script src="/static/js/libs/js.cookie.min.js"></script>
         <script src="/static/js/libs/socket.io.min.js"></script>
     </head>
-    <body class="bg-light">
+    <body class="main-background">
         <!-- The content from any other page goes here -->
         {% block content %} {% endblock %}
     </body>
