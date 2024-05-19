@@ -2,13 +2,101 @@
 {% extends 'base.jinja' %}
 
 {% block content %}
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<style>
+    body {
+        background-color: #343a40;
+        color: #f8f9fa;
+    }
+
+    .navbar {
+        background-color: #343a40;
+    }
+
+    .navbar .navbar-brand, .navbar .nav-link, .navbar .btn {
+        color: #f8f9fa !important;
+    }
+
+    .container {
+        margin-top: 100px;
+    }
+
+    .card {
+        background-color: #495057;
+        color: #f8f9fa;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .card-header {
+        background-color: #6c757d;
+        color: white;
+        border-radius: 8px 8px 0 0;
+        padding: 15px;
+    }
+
+    .card-header h2 {
+        margin: 0;
+    }
+
+    .form-group label {
+        font-weight: bold;
+    }
+
+    .btn-primary {
+        background-color: #495057;
+        border: none;
+        color: #f8f9fa;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        border: none;
+        color: #f8f9fa;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        border: none;
+        color: #f8f9fa;
+    }
+
+    .table {
+        margin-bottom: 0;
+        color: #f8f9fa;
+    }
+
+    .table th, .table td {
+        vertical-align: middle;
+    }
+
+    .modal-header {
+        background-color: #495057;
+        color: white;
+    }
+
+    .modal-footer .btn {
+        border-radius: 4px;
+    }
+
+    .modal-footer .btn-secondary {
+        background-color: #6c757d;
+    }
+
+    .modal-footer .btn-primary {
+        background-color: #495057;
+    }
+</style>
+
+<nav class="navbar navbar-expand-lg navbar-light">
     <a class="navbar-brand" href="{{ url_for('home') }}">Home</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('todo') }}">To-Do List</a>
+            </li>
             <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
             </li>
@@ -107,7 +195,7 @@
 
         async function fetchUsers() {
             try {
-                fetch_url = '{{ url_for('fetch_users') }}';
+                const fetch_url = '{{ url_for('fetch_users') }}';
                 const response = await axios.get(fetch_url);
                 const users = response.data;
                 const usersTable = document.getElementById('usersTable');
@@ -152,7 +240,7 @@
 
     async function confirmUpdateRole() {
         try {
-            url_update = '{{ url_for('update_user_role') }}';
+            const url_update = '{{ url_for('update_user_role') }}';
             const response = await axios.post(url_update, {
                 username: selectedUsername,
                 role: selectedRoleValue

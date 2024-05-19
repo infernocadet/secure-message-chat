@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 import db
 import secrets
 from db import engine, Session
-from models import User, FriendRequest
+from models import User, FriendRequest, ToDoItem
 from shared_state import user_sessions
 from bleach import clean # for sanitizing user input
 
@@ -474,6 +474,71 @@ def get_friends():
     finally:
         db_session.close()
 
+@app.route("/todo", methods=["GET"])
+@login_required
+def todo():
+    user_username = session.get("username")
+    if not user_username:
+        return redirect(url_for('login'))
+
+    db_session = Session()  # Correct way to instantiate a session
+    try:
+        user = db_session.query(User).filter_by(username=user_username).first()
+        if user is None:
+            return redirect(url_for('login'))
+        todo_items = user.todo_items if user.todo_items else []
+    finally:
+        db_session.close()
+
+    return render_template("todo.jinja", username=user_username, todo_items=todo_items)
+
+@app.route("/todo/add", methods=["POST"])
+@login_required
+def add_todo():
+    data = request.json  # Ensure JSON data is received
+    description = data.get("description")
+    user_username = session.get("username")
+    user = db.get_user(user_username)
+    
+    if user and description:
+        new_todo = ToDoItem(description=description, user_id=user.username)
+        with Session() as db_session:
+            db_session.add(new_todo)
+            db_session.commit()
+            return jsonify({"success": True, "todo_id": new_todo.id}), 200
+    
+    return jsonify({"success": False, "message": "Failed to add to-do item"}), 400
+
+@app.route("/todo/update", methods=["POST"])
+@login_required
+def update_todo():
+    data = request.json  # Ensure JSON data is received
+    todo_id = data.get("todo_id")
+    completed = data.get("completed")
+    user_username = session.get("username")
+
+    with Session() as db_session:
+        todo_item = db_session.query(ToDoItem).filter_by(id=todo_id, user_id=user_username).first()
+        if todo_item:
+            todo_item.completed = completed
+            db_session.commit()
+            return jsonify({"success": True}), 200
+    return jsonify({"success": False, "message": "Failed to update to-do item"}), 400
+
+@app.route("/todo/delete", methods=["POST"])
+@login_required
+def delete_todo():
+    data = request.json  # Ensure JSON data is received
+    todo_id = data.get("todo_id")
+    user_username = session.get("username")
+
+    with Session() as db_session:
+        todo_item = db_session.query(ToDoItem).filter_by(id=todo_id, user_id=user_username).first()
+        if todo_item:
+            db_session.delete(todo_item)
+            db_session.commit()
+            return jsonify({"success": True}), 200
+    return jsonify({"success": False, "message": "Failed to delete to-do item"}), 400
 
 # route to logout
 @app.route("/logout", methods=['GET', 'POST'])

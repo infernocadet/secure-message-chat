@@ -1,0 +1,183 @@
+{% extends 'base.jinja' %}
+
+{% block content %}
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .navbar {
+            background-color: #007bff;
+        }
+
+        .navbar .navbar-brand, .navbar .nav-link {
+            color: #fff !important;
+        }
+
+        .container {
+            margin-top: 100px;
+        }
+
+        .card {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .form-group label {
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            border: none;
+        }
+
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-group-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .list-group-item span {
+            flex: 1;
+        }
+
+        .completed {
+            text-decoration: line-through;
+        }
+    </style>
+
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <a class="navbar-brand" href="{{ url_for('home') }}">Home</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>To-Do List</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="addTodoForm">
+                            <div class="form-group">
+                                <label for="description">New To-Do Item</label>
+                                <input type="text" id="description" class="form-control" placeholder="Enter a description">
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="addTodo()">Add</button>
+                        </form>
+
+                        <ul class="list-group mt-4" id="todoList">
+                            {% for item in todo_items %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center" id="todo-{{ item.id }}">
+                                    <div>
+                                        <input type="checkbox" class="mr-2" onchange="updateTodoStatus({{ item.id }}, this.checked)" {% if item.completed %}checked{% endif %}>
+                                        <span class="{% if item.completed %}completed{% endif %}">{{ item.description }}</span>
+                                    </div>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteTodo({{ item.id }})">Delete</button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addTodo() {
+            const description = document.getElementById('description').value;
+            if (description.trim() === '') {
+                alert('Please enter a description');
+                return;
+            }
+
+            axios.post('{{ url_for('add_todo') }}', {
+                description: description
+            })
+            .then(response => {
+                if (response.data.success) {
+                    const todoId = response.data.todo_id;
+                    const todoList = document.getElementById('todoList');
+                    const newTodoItem = document.createElement('li');
+                    newTodoItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    newTodoItem.id = `todo-${todoId}`;
+                    newTodoItem.innerHTML = `
+                        <div>
+                            <input type="checkbox" class="mr-2" onchange="updateTodoStatus(${todoId}, this.checked)">
+                            <span>${description}</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="deleteTodo(${todoId})">Delete</button>
+                    `;
+                    todoList.appendChild(newTodoItem);
+                    document.getElementById('description').value = '';
+                } else {
+                    alert('Failed to add to-do item');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding to-do item:', error);
+            });
+        }
+
+        function updateTodoStatus(todoId, completed) {
+            axios.post('{{ url_for('update_todo') }}', {
+                todo_id: todoId,
+                completed: completed
+            })
+            .then(response => {
+                if (response.data.success) {
+                    const todoItem = document.getElementById(`todo-${todoId}`);
+                    const todoDescription = todoItem.querySelector('span');
+                    todoDescription.classList.toggle('completed', completed);
+                } else {
+                    alert('Failed to update to-do item');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating to-do item:', error);
+            });
+        }
+
+        function deleteTodo(todoId) {
+            axios.post('{{ url_for('delete_todo') }}', {
+                todo_id: todoId
+            })
+            .then(response => {
+                if (response.data.success) {
+                    const todoItem = document.getElementById(`todo-${todoId}`);
+                    todoItem.remove();
+                } else {
+                    alert('Failed to delete to-do item');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting to-do item:', error);
+            });
+        }
+    </script>
+
+{% endblock %}
