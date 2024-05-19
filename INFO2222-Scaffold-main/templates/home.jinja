@@ -526,19 +526,19 @@
         document.getElementById('page-title').textContent = title;
     }
 
-    // Example joinRoom function
     function joinRoom(roomId, roomName) {
-        const senderName = "{{ username }}";
-        console.log(roomId, roomName)
-        // Emit a join event to the server with the roomId
+        const senderName = "{{ username }}";  // Ensure sender name is included
+        console.log(roomId, roomName);
+        // Emit a join event to the server with the roomId and senderName
         socket.emit("join", { sender_name: senderName, room_id: roomId }, (res) => {
-            {# if (typeof res != "number") {
-                alert(res);
+            // Check if the response is successful
+            if (!res.success) {
+                alert(res.message);
                 return;
-            } #}
-            room_id = res;
-            Cookies.set("room_id", room_id)
-            updatePageTitle(roomName)
+            }
+            room_id = res.room_id;
+            Cookies.set("room_id", room_id);
+            updatePageTitle(roomName);
             $("#chat_box").hide();
             $("#input_box").show();
         });
