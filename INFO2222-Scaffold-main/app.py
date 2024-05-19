@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 import db
 import secrets
 from db import engine, Session
-from models import User, FriendRequest, ToDoItem
+from models import Article, Comment, User, FriendRequest, ToDoItem
 from shared_state import user_sessions
 from bleach import clean # for sanitizing user input
 
@@ -39,7 +39,7 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javas
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
-CORS(app)  # This will enable CORS for all routes
+# CORS(app)  # This will enable CORS for all routes
 socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for WebSocket connections
 
 
@@ -580,38 +580,6 @@ def knowledge_repository():
     articles = fetch_articles()  # This should return a list of article objects
     return render_template("knowledge_repository.jinja", articles=articles)
 
-import logging
-logging.basicConfig(level=logging.INFO)
-
-# @app.route('/post_article', methods=['POST'])
-# def post_article():
-#     if 'username' not in session:
-#         logging.error("No username in session")
-#         return jsonify({'error': 'Authentication required'}), 401
-
-#     title = request.json.get('title', 'No Title Provided')
-#     content = request.json.get('content')
-#     username = session.get('username')  # Get username from session
-
-    
-#     if not content:
-#         logging.error("No content provided")
-#         return jsonify({'error': 'Content is required'}), 400
-
-#     db_session = Session()
-#     try:
-#         new_article = Article(title=title, content=content, author_id=session['username'])
-#         db_session.add(new_article)
-#         db_session.commit()
-#         logging.info(f"Article {new_article.id} created successfully")
-#         return jsonify({'message': 'Article created', 'article_id': new_article.id}), 201
-#     except Exception as e:
-#         db_session.rollback()
-#         logging.error(f"Error posting article: {e}")
-#         return jsonify({'error': 'Database error', 'details': str(e)}), 500
-#     finally:
-#         db_session.close()
-
 @app.route('/post_article', methods=['POST'])
 @login_required
 def post_article():
@@ -643,6 +611,9 @@ def post_article():
 @login_required
 def get_my_posts():
     username = session.get('username')
+    if not username:
+        return jsonify({'error': 'Session not found'}), 403
+
     db_session = Session()
     try:
         user = db_session.query(User).filter_by(username=username).first()
@@ -650,9 +621,19 @@ def get_my_posts():
             return jsonify({'error': 'User not found'}), 404
 
         articles = db_session.query(Article).filter_by(author=user).all()
-        return jsonify([{'title': article.title, 'content': article.content, 'created_at': article.created_at.isoformat()} for article in articles])
+        articles_response = []
+        for article in articles:
+            #! error here
+            # created_at = article.created_at.isoformat() if article.created_at else "Unknown date"
+            articles_response.append({
+                'title': article.title,
+                'content': article.content,
+                # 'created_at': created_at
+            })
+        return jsonify(articles_response)
     finally:
         db_session.close()
+
 
 
 @app.route('/post_comment', methods=['POST'])

@@ -3,220 +3,223 @@
 -->
 {% extends 'base.jinja' %}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-{% block content %} 
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+/>
+{% block content %}
 <style>
-    body {
-        display: flex;
-        min-height: 100vh;
-        flex-direction: column;
-    }
+  body {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+  }
 
-    nav {
-        border-bottom: 1px solid #ddd;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: #FFF;
-        z-index: 2;
-    }
+  nav {
+    border-bottom: 1px solid #ddd;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    z-index: 2;
+  }
 
-    nav ul {
-        margin: 0;
-        padding: 0;
-        list-style-type: none;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+  nav ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    nav li {
-        padding: 10px 20px;
-    }
+  nav li {
+    padding: 10px 20px;
+  }
 
-    .nav-left {
-        display: flex;
-        align-items: center;
-    }
+  .nav-left {
+    display: flex;
+    align-items: center;
+  }
 
-    .nav-right {
-        display: flex;
-        align-items: center;
-    }
+  .nav-right {
+    display: flex;
+    align-items: center;
+  }
 
-    .nav-right button {
-        margin-left: 10px;
-    }
+  .nav-right button {
+    margin-left: 10px;
+  }
 
-    .profile-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        color: inherit;
-    }
+  .profile-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+  }
 
-    .profile-icon {
-        font-size: 30px;
-        margin-right: 10px;
-    }
+  .profile-icon {
+    font-size: 30px;
+    margin-right: 10px;
+  }
 
-    #content-wrapper {
-        display: flex;
-        flex: 1;
-        margin-top: 80px; /* Adjusted for better spacing */
-        padding: 20px;
-    }
+  #content-wrapper {
+    display: flex;
+    flex: 1;
+    margin-top: 80px; /* Adjusted for better spacing */
+    padding: 20px;
+  }
 
-    #main-content {
-        flex: 1;
-        margin-right: 20px;
-    }
+  #main-content {
+    flex: 1;
+    margin-right: 20px;
+  }
 
-    #message_box {
-        border: 1px solid #ddd;
-        height: 400px;
-        overflow: auto;
-        padding: 10px;
-        margin-bottom: 20px;
-        background-color: #fff;
-    }
+  #message_box {
+    border: 1px solid #ddd;
+    height: 400px;
+    overflow: auto;
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: #fff;
+  }
 
-    .text {
-        margin-top: 2px;
-        margin-bottom: 2px;
-    }
+  .text {
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
 
-    #sidebar {
-        width: 300px; /* Increased width for better spacing */
-        background-color: #f8f9fa;
-        padding-top: 10px;
-        position: sticky;
-        top: 80px; /* Adjusted for better spacing */
-        height: calc(100vh - 80px);
-        overflow-y: auto;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
+  #sidebar {
+    width: 300px; /* Increased width for better spacing */
+    background-color: #f8f9fa;
+    padding-top: 10px;
+    position: sticky;
+    top: 80px; /* Adjusted for better spacing */
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
 
-    aside {
-        border-bottom: 1px solid #ddd;
-        padding: 10px;
-    }
+  aside {
+    border-bottom: 1px solid #ddd;
+    padding: 10px;
+  }
 
-    aside h2 {
-        margin-top: 0;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-    }
+  aside h2 {
+    margin-top: 0;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+  }
 
-    #friendsSection h2::before {
-        content: '👥'; 
-        margin-right: 8px;
-    }
+  #friendsSection h2::before {
+    content: "👥";
+    margin-right: 8px;
+  }
 
-    #incomingRequestsSection h2::before {
-        content: '📨'; 
-        margin-right: 8px;
-    }
+  #incomingRequestsSection h2::before {
+    content: "📨";
+    margin-right: 8px;
+  }
 
-    #sentRequestsSection h2::before {
-        content: '📤'; 
-        margin-right: 8px;
-    }
+  #sentRequestsSection h2::before {
+    content: "📤";
+    margin-right: 8px;
+  }
 
-    #roomsSection h2::before {
-        content: '💬'; 
-        margin-right: 8px;
-    }
+  #roomsSection h2::before {
+    content: "💬";
+    margin-right: 8px;
+  }
 
-    #friendsList li,
-    #roomsList li {
-        cursor: pointer;
-        padding: 5px 10px;
-        transition: background-color 0.3s, color 0.3s;
-        list-style: none;
-    }
+  #friendsList li,
+  #roomsList li {
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: background-color 0.3s, color 0.3s;
+    list-style: none;
+  }
 
-    #friendsList li:hover,
-    #roomsList li:hover {
-        background-color: #e9ecef;
-        color: #333;
-    }
+  #friendsList li:hover,
+  #roomsList li:hover {
+    background-color: #e9ecef;
+    color: #333;
+  }
 
-    #friendsList li:active,
-    #roomsList li:active {
-        background-color: #ccc;
-        color: #000;
-    }
+  #friendsList li:active,
+  #roomsList li:active {
+    background-color: #ccc;
+    color: #000;
+  }
 
-    .status-indicator {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-left: 5px;
-    }
-    .role-display {
-        font-style: italic;
-        color: gray;
-        margin-left: 8px;
-    }
+  .status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 5px;
+  }
+  .role-display {
+    font-style: italic;
+    color: gray;
+    margin-left: 8px;
+  }
 
   .online {
-      background-color: green;
+    background-color: green;
   }
 
   .offline {
-      background-color: red;
+    background-color: red;
   }
 
-    .edit-mode .friend-item:hover {
-        text-decoration: line-through;
-    }
+  .edit-mode .friend-item:hover {
+    text-decoration: line-through;
+  }
 
-    .modal-body .form-group {
-        margin-bottom: 1rem;
-    }
+  .modal-body .form-group {
+    margin-bottom: 1rem;
+  }
 
-    .form-check {
-        margin-bottom: 0.5rem;
-    }
+  .form-check {
+    margin-bottom: 0.5rem;
+  }
 
-    #add-friend-section {
-        margin-top: 20px;
-        background-color: #f8f9fa;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-    }
+  #add-friend-section {
+    margin-top: 20px;
+    background-color: #f8f9fa;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
 
-    .btn {
-        padding: 8px 12px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
+  .btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
 
-    .btn-primary {
-        background-color: #007bff;
-        color: #fff;
-    }
+  .btn-primary {
+    background-color: #007bff;
+    color: #fff;
+  }
 
-    .btn-secondary {
-        background-color: #6c757d;
-        color: #fff;
-    }
+  .btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+  }
 
-    .btn-outline-danger {
-        border: 1px solid #dc3545;
-        color: #dc3545;
-        background-color: #fff;
-    }
+  .btn-outline-danger {
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    background-color: #fff;
+  }
 
-    .btn:hover {
-        opacity: 0.8;
-    }
+  .btn:hover {
+    opacity: 0.8;
+  }
 </style>
 <!-- Modal HTML -->
 <div
@@ -257,215 +260,316 @@
 </div>
 
 <!-- New Chat Modal -->
-<div class="modal fade" id="newChatModal" tabindex="-1" role="dialog" aria-labelledby="newChatModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="newChatModalLabel">Start a New Chat</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+<div
+  class="modal fade"
+  id="newChatModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="newChatModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newChatModalLabel">Start a New Chat</h5>
+        <button
+          type="button"
+          class="close"
+          data-dismiss="modal"
+          aria-label="Close"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="newChatForm">
+          <div class="form-group">
+            <label for="chatRoomName">Chat Room Name:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="chatRoomName"
+              placeholder="Enter room name"
+            />
+          </div>
+          <div class="form-group">
+            <label>Select friends to chat with:</label>
+            <div id="friendsCheckboxList">
+              {% for item in friends %}
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value="{{ item.username }}"
+                  id="friend-{{ item.username }}"
+                />
+                <label
+                  class="form-check-label"
+                  for="friend-{{ item.username }}"
+                >
+                  {{ item.username }}
+                </label>
+              </div>
+              {% endfor %}
             </div>
-            <div class="modal-body">
-                <form id="newChatForm">
-                    <div class="form-group">
-                        <label for="chatRoomName">Chat Room Name:</label>
-                        <input type="text" class="form-control" id="chatRoomName" placeholder="Enter room name">
-                    </div>
-                    <div class="form-group">
-                        <label>Select friends to chat with:</label>
-                        <div id="friendsCheckboxList">
-                            {% for item in friends %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="{{ item.username }}" id="friend-{{ item.username }}">
-                                    <label class="form-check-label" for="friend-{{ item.username }}">
-                                        {{ item.username }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="createChat()">Start Chat</button>
-            </div>
-        </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" onclick="createChat()">
+          Start Chat
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- New Chat Modal -->
-<div class="modal fade" id="newChatModal" tabindex="-1" role="dialog" aria-labelledby="newChatModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="newChatModalLabel">Start a New Chat</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+<div
+  class="modal fade"
+  id="newChatModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="newChatModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newChatModalLabel">Start a New Chat</h5>
+        <button
+          type="button"
+          class="close"
+          data-dismiss="modal"
+          aria-label="Close"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="newChatForm">
+          <div class="form-group">
+            <label for="chatRoomName">Chat Room Name:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="chatRoomName"
+              placeholder="Enter room name"
+            />
+          </div>
+          <div class="form-group">
+            <label>Select friends to chat with:</label>
+            <div id="friendsCheckboxList">
+              {% for item in friends %}
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value="{{ item.username }}"
+                  id="friend-{{ item.username }}"
+                />
+                <label
+                  class="form-check-label"
+                  for="friend-{{ item.username }}"
+                >
+                  {{ item.username }}
+                </label>
+              </div>
+              {% endfor %}
             </div>
-            <div class="modal-body">
-                <form id="newChatForm">
-                    <div class="form-group">
-                        <label for="chatRoomName">Chat Room Name:</label>
-                        <input type="text" class="form-control" id="chatRoomName" placeholder="Enter room name">
-                    </div>
-                    <div class="form-group">
-                        <label>Select friends to chat with:</label>
-                        <div id="friendsCheckboxList">
-                            {% for item in friends %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="{{ item.username }}" id="friend-{{ item.username }}">
-                                    <label class="form-check-label" for="friend-{{ item.username }}">
-                                        {{ item.username }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="createChat()">Start Chat</button>
-            </div>
-        </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" onclick="createChat()">
+          Start Chat
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <nav>
-    <ul>
-        <div class="nav-left">
-            <li>
-                <a href="{{ url_for('profile') }}" class="profile-link">
-                    <i class="fas fa-user-circle profile-icon"></i>
-                    <span><strong>{{ username }}</strong></span>
-                </a>
-            </li>
-        </div>
-        <div class="nav-right">
-            <li><button class="btn btn-outline-danger" onclick="logout()">Logout</button></li>
-            <li><button class="btn btn-secondary" onclick="toggleEditMode()">Edit Friends</button></li>
-            <li><button class="btn btn-primary" onclick="showNewChatModal()">New Chat</button></li>
-            <li><button class="btn btn-info" onclick="window.location.href='{{ url_for('todo') }}'">To-Do List</button></li>
-        </div>
-    </ul>
+  <ul>
+    <div class="nav-left">
+      <li>
+        <a href="{{ url_for('profile') }}" class="profile-link">
+          <i class="fas fa-user-circle profile-icon"></i>
+          <span
+            ><strong>{{ username }}</strong></span
+          >
+        </a>
+      </li>
+    </div>
+    <div class="nav-right">
+      <li>
+        <button class="btn btn-outline-danger" onclick="logout()">
+          Logout
+        </button>
+      </li>
+      <li>
+        <button class="btn btn-secondary" onclick="toggleEditMode()">
+          Edit Friends
+        </button>
+      </li>
+      <li>
+        <button class="btn btn-primary" onclick="showNewChatModal()">
+          New Chat
+        </button>
+      </li>
+      <li>
+        <button
+          class="btn btn-info"
+          onclick="window.location.href='{{ url_for('todo') }}'"
+        >
+          To-Do List
+        </button>
+      </li>
+      <li>
+        <button
+          class="btn btn-info"
+          onclick="window.location.href='{{ url_for('knowledge_repository') }}'"
+        >
+          knowledge_repository
+        </button>
+      </li>
+    </div>
+  </ul>
 </nav>
 <div id="content-wrapper">
-    <div id="main-content">
-        <h1 id="page-title">Join a chat!</h1>
+  <div id="main-content">
+    <h1 id="page-title">Join a chat!</h1>
 
-        <section id="message_box"></section>
+    <section id="message_box"></section>
 
-        <section id="input_box" style="display: none;">
-            <input id="message" placeholder="message">
-            <button class="btn btn-primary" onclick="send()">Send</button>
-            <button class="btn btn-secondary" onclick="leave()">Leave Room</button>
-        </section>
+    <section id="input_box" style="display: none">
+      <input id="message" placeholder="message" />
+      <button class="btn btn-primary" onclick="send()">Send</button>
+      <button class="btn btn-secondary" onclick="leave()">Leave Room</button>
+    </section>
 
-        <section id="add-friend-section">
-            <h1>Add friend</h1>
-            <form id="friendrequestForm">
-                <label for="friendUsername">Friend's Username:</label>
-                <input id="friendUsername" name="friendUsername" type="text" required />
-                <button type="submit" class="btn btn-primary">Add Friend</button>
-            </form>
-            <p id="friendRequestMessage" style="display:none;"></p>
-        </section>
-    </div>
+    <section id="add-friend-section">
+      <h1>Add friend</h1>
+      <form id="friendrequestForm">
+        <label for="friendUsername">Friend's Username:</label>
+        <input id="friendUsername" name="friendUsername" type="text" required />
+        <button type="submit" class="btn btn-primary">Add Friend</button>
+      </form>
+      <p id="friendRequestMessage" style="display: none"></p>
+    </section>
+  </div>
 
-    <div id="sidebar">
-      <!-- Friends Section -->
-      <aside id="friendsSection">
-        <h2>Friends</h2>
-        <div id="friendsContent">
-          {% if friends %}
-          <ul id="friendsList">
-            {% for item in friends %}
-            <li
-          id="friend-{{ item.username }}"
-          class="friend-item"
-          onclick="handleFriendClick('{{ item.username }}')"
+  <div id="sidebar">
+    <!-- Friends Section -->
+    <aside id="friendsSection">
+      <h2>Friends</h2>
+      <div id="friendsContent">
+        {% if friends %}
+        <ul id="friendsList">
+          {% for item in friends %}
+          <li
+            id="friend-{{ item.username }}"
+            class="friend-item"
+            onclick="handleFriendClick('{{ item.username }}')"
+          >
+            {{ item.username }}
+            <span class="role-display">{{ get_role_display(item.role) }}</span>
+            <span
+              id="status-{{ item.username }}"
+              class="status-indicator offline"
+            ></span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p id="lonelyMessage">It's a bit lonely in here...</p>
+        {% endif %}
+      </div>
+    </aside>
+
+    <!-- Incoming Requests Section -->
+    <aside id="incomingRequestsSection">
+      <h2>Incoming Requests</h2>
+      <div id="incomingFriendsContent">
+        <ul id="incomingRequestsList">
+          {% for item in incoming_friends %}
+          <li id="friend-request-{{ item.id }}">
+            {{ item.sender_username }}
+            <button
+              class="btn btn-primary"
+              onclick="acceptfriendRequest('{{ item.id }}', this)"
             >
-          {{ item.username }} <span class="role-display">{{ get_role_display(item.role) }}</span>
-          <span
-            id="status-{{ item.username }}"
-            class="status-indicator offline"
-          ></span>
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <p id="lonelyMessage">It's a bit lonely in here...</p>
-          {% endif %}
-        </div>
-      </aside>
+              Accept
+            </button>
+            <button
+              class="btn btn-secondary"
+              onclick="rejectfriendRequest('{{ item.id }}', this)"
+            >
+              Reject
+            </button>
+            <p id="requestResponse" style="display: none"></p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if not incoming_friends %}
+        <p id="noIncomingRequestsMessage">No incoming requests. (tumbleweed)</p>
+        {% endif %}
+      </div>
+    </aside>
 
-        <!-- Incoming Requests Section -->
-        <aside id="incomingRequestsSection">
-            <h2>Incoming Requests</h2>
-            <div id="incomingFriendsContent">
-                <ul id="incomingRequestsList">
-                    {% for item in incoming_friends %}
-                        <li id="friend-request-{{ item.id }}">
-                            {{ item.sender_username }}
-                            <button class="btn btn-primary" onclick="acceptfriendRequest('{{ item.id }}', this)">Accept</button>
-                            <button class="btn btn-secondary" onclick="rejectfriendRequest('{{ item.id }}', this)">Reject</button>
-                            <p id="requestResponse" style="display:none;"></p>
-                        </li>
-                    {% endfor %}
-                </ul>
-                {% if not incoming_friends %}
-                    <p id="noIncomingRequestsMessage">No incoming requests. (tumbleweed)</p>
-                {% endif %}
-            </div>
-        </aside>
+    <!-- Sent Requests Section -->
+    <aside id="sentRequestsSection">
+      <h2>Sent Requests</h2>
+      <div id="sentRequestsContent">
+        {% if sent_requests %}
+        <ul id="sentRequestsList">
+          {% for sent in sent_requests %}
+          <li id="sent-request-{{ sent.id }}">
+            {{ sent.receiver_username }}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p id="noSentRequestsMessage">No sent requests. Go and add someone!</p>
+        {% endif %}
+      </div>
+    </aside>
 
-        <!-- Sent Requests Section -->
-        <aside id="sentRequestsSection">
-            <h2>Sent Requests</h2>
-            <div id="sentRequestsContent">
-                {% if sent_requests %}
-                    <ul id="sentRequestsList">
-                        {% for sent in sent_requests %}
-                            <li id="sent-request-{{ sent.id }}">
-                                {{ sent.receiver_username }}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p id="noSentRequestsMessage">No sent requests. Go and add someone!</p>
-                {% endif %}
-            </div>
-        </aside>
-
-        <!-- Rooms Section -->
-        <aside id="roomsSection">
-            <h2>Rooms</h2>
-            <div id="roomsContent">
-                {% if rooms %}
-                    <ul id="roomsList">
-                        {% for room in rooms %}
-                            <li id="room-{{ room.id }}" class="room-item" onclick="joinRoom({{ room.id }}, '{{ room.name }}')">
-                                {{ room.name }}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p id="noRoomsMessage">No rooms available.</p>
-                {% endif %}
-            </div>
-        </aside>
-    </div>
+    <!-- Rooms Section -->
+    <aside id="roomsSection">
+      <h2>Rooms</h2>
+      <div id="roomsContent">
+        {% if rooms %}
+        <ul id="roomsList">
+          {% for room in rooms %}
+          <li
+            id="room-{{ room.id }}"
+            class="room-item"
+            onclick="joinRoom({{ room.id }}, '{{ room.name }}')"
+          >
+            {{ room.name }}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p id="noRoomsMessage">No rooms available.</p>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
 </div>
-
-
 
 <script src="/static/js/libs/socket.io.min.js"></script>
 <script src="/static/js/home/friends-list.js"></script>
-{# old encryption scripts #}
-{# <script src="/static/js/home-encryption/everything-encryption.js"></script> #}
+{# old encryption scripts #} {#
+<script src="/static/js/home-encryption/everything-encryption.js"></script>
+#}
 <script>
   let room_id = 0;
   let friendsList = [];
@@ -506,107 +610,107 @@
   socket.emit("online", username);
   console.log(username + " is online");
 
-    // an incoming message arrives, we'll add the message to the message box
-    socket.on("incoming", (msg, color="black") => {
-        add_message(msg, color);
-    })
+  // an incoming message arrives, we'll add the message to the message box
+  socket.on("incoming", (msg, color = "black") => {
+    add_message(msg, color);
+  });
 
-        
+  // we'll send the message to the server by emitting a "send" event
+  async function send() {
+    let message = $("#message").val();
+    $("#message").val("");
+    if (message.trim() === "") return; // Prevent sending empty messages
+    socket.emit("send", username, message, room_id);
+  }
 
-    // we'll send the message to the server by emitting a "send" event
-    async function send() {
-        let message = $("#message").val();
-        $("#message").val("");
-        if (message.trim() === "") return; // Prevent sending empty messages
-        socket.emit("send", username, message, room_id);  
-    } 
+  // Function to leave the room
+  function leave() {
+    Cookies.remove("room_id");
+    socket.emit("leave", username, room_id);
+    updatePageTitle("Join a chat");
+    $("#input_box").hide();
+    $("#chat_box").show();
+  }
 
-    // Function to leave the room
-    function leave() {
-        Cookies.remove("room_id");
-        socket.emit("leave", username, room_id);
-        updatePageTitle("Join a chat")
-        $("#input_box").hide();
-        $("#chat_box").show();
-    }
+  socket.on("message_history", function (messages) {
+    messages.forEach((message) => {
+      add_message(`${message.sender}: ${message.content}`, "black");
+    });
+  });
 
-    socket.on("message_history", function(messages) {
-        messages.forEach(message => {
-            add_message(`${message.sender}: ${message.content}`, "black");
-        });
+  // function to add a message to the message box
+  function add_message(message, color) {
+    let box = $("#message_box");
+    let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
+    box.append(child);
+  }
+
+  // Function to show the New Chat modal
+  function showNewChatModal() {
+    $("#newChatModal").modal("show");
+  }
+
+  socket.on("new_room", function (data) {
+    const roomId = data.room_id;
+    const roomName = data.room_name;
+    const roomItem = `<li id="room-${roomId}" class="room-item" onclick="joinRoom(${roomId}, '${roomName}')">${roomName}</li>`;
+    $("#roomsList").append(roomItem);
+  });
+
+  // function to create new chat
+  function createChat() {
+    let selectedFriends = [];
+    $("#friendsCheckboxList input:checked").each(function () {
+      selectedFriends.push($(this).val());
     });
 
-    // function to add a message to the message box
-    function add_message(message, color) {
-        let box = $("#message_box");
-        let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
-        box.append(child);
+    let chatRoomName = $("#chatRoomName").val().trim();
+    if (!chatRoomName) {
+      chatRoomName = "Chat Room";
     }
 
-    // Function to show the New Chat modal
-    function showNewChatModal() {
-        $('#newChatModal').modal('show');
+    if (selectedFriends.length === 0) {
+      alert("Please select at least one friend.");
+      return;
     }
-    
-    socket.on("new_room", function(data) {
-        const roomId = data.room_id;
-        const roomName = data.room_name;
-        const roomItem = `<li id="room-${roomId}" class="room-item" onclick="joinRoom(${roomId}, '${roomName}')">${roomName}</li>`;
-        $('#roomsList').append(roomItem);
+    socket.emit(
+      "create",
+      { sender: username, room_name: chatRoomName, friends: selectedFriends },
+      (res) => {
+        if (typeof res != "number") {
+          alert(res);
+          return;
+        }
+        room_id = res;
+        Cookies.set("room_id", room_id);
+        $("#newChatModal").modal("hide");
+        $("#chat_box").hide();
+        $("#input_box").show();
+      }
+    );
+  }
+  // Function to update the page title
+  function updatePageTitle(title) {
+    document.getElementById("page-title").textContent = title;
+  }
+
+  function joinRoom(roomId, roomName) {
+    const senderName = "{{ username }}"; // Ensure sender name is included
+    console.log(roomId, roomName);
+    // Emit a join event to the server with the roomId and senderName
+    socket.emit("join", { sender_name: senderName, room_id: roomId }, (res) => {
+      // Check if the response is successful
+      if (!res.success) {
+        alert(res.message);
+        return;
+      }
+      room_id = res.room_id;
+      Cookies.set("room_id", room_id);
+      updatePageTitle(roomName);
+      $("#chat_box").hide();
+      $("#input_box").show();
     });
-
-
-    // function to create new chat
-    function createChat() {
-        let selectedFriends = [];
-        $('#friendsCheckboxList input:checked').each(function() {
-            selectedFriends.push($(this).val());
-        });
-
-        let chatRoomName = $('#chatRoomName').val().trim();
-        if (!chatRoomName) {
-            chatRoomName = "Chat Room";
-        }
-        
-        if (selectedFriends.length === 0) {
-            alert("Please select at least one friend.");
-            return;
-        }
-        socket.emit("create", {sender: username, room_name: chatRoomName, friends: selectedFriends}, (res) => {
-            if (typeof res != "number") {
-                alert(res);
-                return;
-            }
-            room_id = res;
-            Cookies.set("room_id", room_id);
-            $('#newChatModal').modal('hide');
-            $("#chat_box").hide();
-            $("#input_box").show();
-        });
-    }
-    // Function to update the page title
-    function updatePageTitle(title) {
-        document.getElementById('page-title').textContent = title;
-    }
-
-    function joinRoom(roomId, roomName) {
-        const senderName = "{{ username }}";  // Ensure sender name is included
-        console.log(roomId, roomName);
-        // Emit a join event to the server with the roomId and senderName
-        socket.emit("join", { sender_name: senderName, room_id: roomId }, (res) => {
-            // Check if the response is successful
-            if (!res.success) {
-                alert(res.message);
-                return;
-            }
-            room_id = res.room_id;
-            Cookies.set("room_id", room_id);
-            updatePageTitle(roomName);
-            $("#chat_box").hide();
-            $("#input_box").show();
-        });
-    }
-
+  }
 
   // handling friend online status update
   socket.on("friend_online", function (data) {
@@ -687,11 +791,11 @@
       $("#removeFriendModal").modal("hide");
     });
 
-    function handleFriendClick(friendUsername){
-        if (editMode){
-            showRemoveFriendModal(friendUsername);
-        }; // opportunity here to click and open profile
-    }
+  function handleFriendClick(friendUsername) {
+    if (editMode) {
+      showRemoveFriendModal(friendUsername);
+    } // opportunity here to click and open profile
+  }
 
   // adding friend function
   document
@@ -825,32 +929,35 @@
   function removeFriend(friendUsername) {
     let removeFriendURL = "{{ url_for('remove_friend') }}";
 
-        axios.post(removeFriendURL, {
-            friend_username: friendUsername
-        })
-        .then(function(response) {
-            console.log(response.data);
-            if (response.data.success) {
-                // Remove friend from the list
-                let friendElement = document.getElementById('friend-' + friendUsername);
-                if (friendElement) {
-                    friendElement.remove();
-                }
-            } else {
-                console.error(response.data.error);
-            }
-        })
-        .catch(function(error) {
-            console.error('Error:', error);
-        });
-    };
-    // update friends list when a new friend is added
-    socket.on("update_friends_list", function(data) {
-        if (data.new_friend) {
-            let newFriendUsername = data.new_friend;
-            let friendsList = document.getElementById('friendsList');
-            let friendsSection = document.getElementById('friendsSection');
-            let lonelyMessage = document.getElementById('lonelyMessage');
+    axios
+      .post(removeFriendURL, {
+        friend_username: friendUsername,
+      })
+      .then(function (response) {
+        console.log(response.data);
+        if (response.data.success) {
+          // Remove friend from the list
+          let friendElement = document.getElementById(
+            "friend-" + friendUsername
+          );
+          if (friendElement) {
+            friendElement.remove();
+          }
+        } else {
+          console.error(response.data.error);
+        }
+      })
+      .catch(function (error) {
+        console.error("Error:", error);
+      });
+  }
+  // update friends list when a new friend is added
+  socket.on("update_friends_list", function (data) {
+    if (data.new_friend) {
+      let newFriendUsername = data.new_friend;
+      let friendsList = document.getElementById("friendsList");
+      let friendsSection = document.getElementById("friendsSection");
+      let lonelyMessage = document.getElementById("lonelyMessage");
 
       if (!friendsList) {
         if (lonelyMessage) {
@@ -989,24 +1096,27 @@
     let requestItem = document.getElementById(`sent-request-${requestID}`);
     requestItem.remove();
 
-        // check if no more sent requests
-        let sentRequestsList = document.getElementById('sentRequestsList');
-        let sentRequestsSection = document.getElementById('sentRequestsSection');
-        let noSentRequestsMessage = document.getElementById('noSentRequestsMessage');
-        
-        if (sentRequestsList && sentRequestsList.children.length === 0) {
-            // If there are none, display the "No sent requests" message
-            if (noSentRequestsMessage) {
-                noSentRequestsMessage.style.display = 'block'; // Make existing message visible
-            } else {
-                // Create the "No sent requests" message if it doesn't exist
-                noSentRequestsMessage = document.createElement('p');
-                noSentRequestsMessage.id = 'noSentRequestsMessage';
-                noSentRequestsMessage.textContent = 'No sent requests. Go and add someone!';
-                sentRequestsSection.appendChild(noSentRequestsMessage);
-            }
-        }
-    });
+    // check if no more sent requests
+    let sentRequestsList = document.getElementById("sentRequestsList");
+    let sentRequestsSection = document.getElementById("sentRequestsSection");
+    let noSentRequestsMessage = document.getElementById(
+      "noSentRequestsMessage"
+    );
+
+    if (sentRequestsList && sentRequestsList.children.length === 0) {
+      // If there are none, display the "No sent requests" message
+      if (noSentRequestsMessage) {
+        noSentRequestsMessage.style.display = "block"; // Make existing message visible
+      } else {
+        // Create the "No sent requests" message if it doesn't exist
+        noSentRequestsMessage = document.createElement("p");
+        noSentRequestsMessage.id = "noSentRequestsMessage";
+        noSentRequestsMessage.textContent =
+          "No sent requests. Go and add someone!";
+        sentRequestsSection.appendChild(noSentRequestsMessage);
+      }
+    }
+  });
 
   // function to join a room with a friend
   async function click_join(friendUsername) {
@@ -1019,11 +1129,11 @@
       room_id = res; // set room id from response
       Cookies.set("room_id", room_id); // set cookie
 
-            // show message input box and hide chat box
-        $("#chat_box").hide();
-        $("#input_box").show();
-        });
-    }
+      // show message input box and hide chat box
+      $("#chat_box").hide();
+      $("#input_box").show();
+    });
+  }
 
   // function to logout
   function logout() {
@@ -1037,18 +1147,18 @@
     window.location.href = "{{ url_for('logout') }}";
   }
 
-
-    function  Friends() {
-        return axios.get("{{ url_for('get_friends') }}")
-        .then(function(response){
-            friendsList = response.data.friends;
-            console.log('Updated friends list:', friendsList);
-            return friendsList
-        })
-        .catch(function(error){
-            console.error('Error:', error)
-        });
-    }
+  function Friends() {
+    return axios
+      .get("{{ url_for('get_friends') }}")
+      .then(function (response) {
+        friendsList = response.data.friends;
+        console.log("Updated friends list:", friendsList);
+        return friendsList;
+      })
+      .catch(function (error) {
+        console.error("Error:", error);
+      });
+  }
 
   function isFriend(receiver) {
     return friendsList.includes(receiver);

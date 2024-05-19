@@ -115,3 +115,28 @@ class ToDoItem(Base):
     description = Column(String, nullable=False)
     completed = Column(Boolean, default=False)
     user = relationship("User", back_populates="todo_items")
+
+class Article(Base):
+    __tablename__ = 'articles'
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    author_id = Column(Integer, ForeignKey('user.username'))  # Make sure ForeignKey references are correct
+    author = relationship('User', back_populates='articles')
+    # created_at = Column(DateTime, default=datetime.utcnow)  # Auto-set the date on creation
+
+
+
+class Comment(Base):
+    __tablename__ = 'comments'
+    id = Column(Integer, primary_key=True)
+    content = Column(Text, nullable=False)
+    article_id = Column(Integer, ForeignKey('articles.id'))  
+    author_id = Column(String, ForeignKey('user.username')) 
+    article = relationship('Article', back_populates='comments')
+    author = relationship('User', back_populates='comments')
+
+
+User.articles = relationship('Article', back_populates='author', cascade='all, delete-orphan')
+User.comments = relationship('Comment', back_populates='author', cascade='all, delete-orphan')
+Article.comments = relationship('Comment', back_populates='article', cascade='all, delete-orphan')
