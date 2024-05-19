@@ -7,8 +7,7 @@ file containing all the routes related to socket.io
 from flask_socketio import join_room, emit, leave_room
 from flask import request, jsonify
 from bleach import clean 
-import os
-import base64
+from typing import List
 
 try:
     from __main__ import socketio
@@ -21,7 +20,20 @@ import db
 
 from shared_state import user_sessions
 
-room = Room()
+def find_or_create_room(room_name, usernames):
+    """
+    Finds or creates a room and adds users to it
+    """
+    existing_room = db.find_room_with_users(usernames)
+    if existing_room:
+        return existing_room.id
+    room_id = db.create_room(room_name, usernames)
+
+    #emit new room event to all users
+    for username in usernames:
+        if username in user_sessions:
+            socketio.emit("new_room", {"room_id": room_id, "room_name": room_name}, room=user_sessions[username])
+    return room_id
 
 # when the client connects to a socket
 # this event is emitted when the io() function is called in JS
@@ -67,47 +79,52 @@ def disconnect():
 # send message event handler
 @socketio.on("send")
 def send(username, message, room_id):
-    print(message)
+    db.insert_message(message, username, room_id)
     emit("incoming", (f"{username}: {message}"), to=room_id)
 
-@socketio.on("join")
-def join(sender_name, receiver_name):
+@socketio.on("create")
+def create(data):
+    sender_name = data['sender']
+    room_name = data['room_name']
+    other_usernames = data['friends']
+    all_users = other_usernames + [sender_name]
+    room_id = find_or_create_room(room_name, all_users)
     
-    receiver = db.get_user(receiver_name)
-    if receiver is None:
-        return "Unknown receiver!"
-    
-    sender = db.get_user(sender_name)
-    if sender is None:
-        return "Unknown sender!"
-
-    room_id = room.get_room_id(receiver_name)
-
-    # if the user is already inside of a room 
-    if room_id is not None:
-        
-        room.join_room(sender_name, room_id)
-        join_room(room_id)
-        # emit to everyone in the room except the sender
-        emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
-        # emit only to the sender
-        emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
-        return room_id
-
-    # if the user isn't inside of any room, 
-    # perhaps this user has recently left a room
-    # or is simply a new user looking to chat with someone
-    room_id = room.create_room(sender_name, receiver_name)
+    # automatically join the room after creation
     join_room(room_id)
-    emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"), to=room_id)
+    emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id)
+
+    
+    
     return room_id
+
+
+@socketio.on("join")
+def join(data):
+    sender_name = data.get('sender_name')
+    room_id = data.get('room_id')
+
+    if not sender_name or not room_id:
+        return {"success": False, "message": "Missing sender name or room ID"}
+
+    # Join the room
+    join_room(room_id)
+
+    # Emit messages to notify users
+    emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id)
+    
+    # Retrieve and emit message history to the joining user
+    messages = db.get_messages(room_id)
+    emit("message_history", messages, to=request.sid)
+    
+    return {"success": True, "room_id": room_id}
+
 
 # leave room event handler
 @socketio.on("leave")
 def leave(username, room_id):
     emit("incoming", (f"{username} has left the room.", "red"), to=room_id)
     leave_room(room_id)
-    room.leave_room(username)
 
 @socketio.on("online")
 def heartbeat_online(username):
@@ -126,7 +143,6 @@ def heartbeat_online(username):
             if friend.username in user_sessions:
                 emit("friend_online", {"username": friend.username}, room=main_sid)
     
-
 @socketio.on("offline")
 def heartbeat_offline(username):
     inactive_user = db.get_user(username)

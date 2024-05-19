@@ -10,7 +10,7 @@ Prisma docs also looks so much better in comparison
 or use SQLite, if you're not into fancy ORMs (but be mindful of Injection attacks :) )
 '''
 
-from sqlalchemy import String, Table, Column, Integer, ForeignKey, Text
+from sqlalchemy import String, Table, Column, Integer, ForeignKey, Text, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import Dict, List
 from sqlalchemy import DateTime
@@ -29,18 +29,21 @@ friend_table = Table('friends', Base.metadata,
     Column('friend_id', String, ForeignKey('user.username'), primary_key=True)
 )
 
+# similar helper table for rooms and users supporting a many to many relationship
+user_room_table = Table(
+    'user_room', Base.metadata,
+    Column('user_id', String, ForeignKey('user.username'), primary_key=True),
+    Column('room_id', Integer, ForeignKey('room.id'), primary_key=True)
+)
+
 
 # model to store user information
 class User(Base):
     __tablename__ = "user"
-    
-    # looks complicated but basically means
-    # I want a username column of type string,
-    # and I want this column to be my primary key
-    # then accessing john.username -> will give me some data of type string
-    # in other words we've mapped the username Python object property to an SQL column of type String 
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
+    role: Mapped[int] = mapped_column(Integer) # [0, 1, 2, 3] = [student, academic, admin-staff, admin-user]
+    todo_items = relationship("ToDoItem", back_populates="user")
     
     # deprecated - no more keys
     # public_key: Mapped[str] = mapped_column(Text, nullable=True) # Storing public key as text
@@ -66,6 +69,12 @@ class User(Base):
         backref="receiver"
     )
 
+    rooms: Mapped[List["Room"]] = relationship(
+        "Room",
+        secondary=user_room_table,
+        back_populates="users"
+    )
+
 class FriendRequest(Base):
     __tablename__ = "friendrequests"
     # in the case we want to track if a user is spamming requests
@@ -74,65 +83,35 @@ class FriendRequest(Base):
     receiver_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     status: Mapped[str] = mapped_column(String) # ["rejected", "pending", "accepted"]   
 
-# stateful counter used to generate the room id
-class Counter():
-    def __init__(self):
-        self.counter = 0 
-    
-    def get(self):
-        self.counter += 1
-        return self.counter
+class Room(Base):
+    __tablename__ = 'room'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    users: Mapped[List["User"]] = relationship(
+        "User",
+        secondary=user_room_table,
+        back_populates="rooms"
+    )
+    messages: Mapped[List["Message"]] = relationship(
+        "Message",
+        back_populates="room",
+        cascade="all, delete-orphan"
+    )
 
-# Room class, used to keep track of which username is in which room
-class Room():
-    def __init__(self):
-        self.counter = Counter()
-        self.dict: Dict[str, int] = {}
+class Message(Base):
+    __tablename__ = 'message'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    content: Mapped[str] = mapped_column(Text)
+    sender_username: Mapped[str]  = mapped_column(String, ForeignKey('user.username'))
+    room_id: Mapped[int] = mapped_column(Integer, ForeignKey('room.id'))
 
-    def create_room(self, sender: str, receiver: str) -> int:
-        room_id = self.counter.get()
-        self.dict[sender] = room_id
-        self.dict[receiver] = room_id
-        return room_id
-    
-    def join_room(self,  sender: str, room_id: int) -> int:
-        self.dict[sender] = room_id
+    sender: Mapped["User"] = relationship("User")
+    room: Mapped["Room"] = relationship("Room", back_populates="messages")
 
-    def leave_room(self, user):
-        if user in self.dict:
-            del self.dict[user]
-
-    # gets the room id from a user
-    def get_room_id(self, user: str):
-        if user not in self.dict.keys():
-            return None
-        return self.dict[user]
-
-
-class Article(Base):
-    __tablename__ = "articles"
+class ToDoItem(Base):
+    __tablename__ = 'todo_items'
     id = Column(Integer, primary_key=True)
-    title = Column(String(255), nullable=False)
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    author_id = Column(String, ForeignKey('user.username'))
-    
-    # Relationships
-    author = relationship('User', back_populates='articles')
-    comments = relationship('Comment', back_populates='article', cascade="all, delete-orphan")
-
-User.articles = relationship('Article', order_by=Article.id, back_populates='author')
-
-class Comment(Base):
-    __tablename__ = "comments"
-    id = Column(Integer, primary_key=True)
-    content = Column(Text, nullable=False)
-    article_id = Column(Integer, ForeignKey('articles.id'))
-    author_id = Column(String, ForeignKey('user.username'))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    article = relationship('Article', back_populates='comments')
-    author = relationship('User', back_populates='comments')
-
-User.comments = relationship('Comment', order_by=Comment.id, back_populates='author')
+    user_id = Column(Integer, ForeignKey('user.username'), nullable=False)
+    description = Column(String, nullable=False)
+    completed = Column(Boolean, default=False)
+    user = relationship("User", back_populates="todo_items")

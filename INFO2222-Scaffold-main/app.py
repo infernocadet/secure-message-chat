@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 import db
 import secrets
 from db import engine, Session
-from models import Article, Comment, User, FriendRequest
+from models import User, FriendRequest, ToDoItem
 from shared_state import user_sessions
 from bleach import clean # for sanitizing user input
 
@@ -39,6 +39,10 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javas
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
+CORS(app)  # This will enable CORS for all routes
+socketio = SocketIO(app, cors_allowed_origins="*")  # Allow CORS for WebSocket connections
+
+
 
 bcrypt = Bcrypt(app)
 
@@ -49,6 +53,17 @@ Session(app)
 
 # session class bound to the engine
 Session = sessionmaker(bind=engine)
+
+def get_role_display(role):
+    role_map = {
+        0: "Student",
+        1: "Academic",
+        2: "Admin Staff",
+        3: "Admin User"
+    }
+    return role_map.get(role, "Unknown")
+
+app.jinja_env.globals.update(get_role_display=get_role_display)
 
 # sanitize user input
 # you will see that i have used this function in the login and signup routes, and addfriend routes to sanitise any user data that is sent to the server
@@ -67,7 +82,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "username" not in session:
-            return redirect(url_for('login'))
+            print("---------------NOT LOGGED IN---------------")
+            # return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -75,7 +91,7 @@ def login_required(f):
 # index page
 @app.route("/")
 def index():
-    return render_template("index.jinja")
+    return render_template("signup.jinja")
 
 
 # login page
@@ -84,6 +100,40 @@ def login():
     
     return render_template("login.jinja")
 
+# profile page, displays the profile of a user
+@app.route("/profile")
+@login_required
+def profile():
+    user_username = session.get("username")
+    if not user_username:
+        return redirect(url_for('login'))
+    user = db.get_user(user_username)
+    if user is None:
+        return redirect(url_for('login'))
+    user_role = db.get_role(user_username)
+
+
+    return render_template("profile.jinja", username=user_username, role=user_role)
+
+# fetches users for admin
+@app.route("/fetch_users", methods=['GET'])
+@login_required
+def fetch_users():
+    """
+    Requests user name and role data of all users from database. 
+    Returns as json
+    """
+    return db.fetch_users()
+
+@app.route("/update_user_role", methods=['POST'])
+def update_user_role():
+    data = request.json
+    username = data.get("username")
+    role = int(data.get("role"))
+    print(f"Updating role for {username} to {role}")
+    response = db.update_role(username, role)
+    print(db.get_role(username))
+    return response
 
 # handles a post request when the user clicks the log in button
 @app.route("/login/user", methods=["POST"])
@@ -93,6 +143,11 @@ def login_user():
 
     username = sanitize_input(request.json.get("username"))
     client_hashed_password = request.json.get("password")
+    role = request.json.get("role")
+    if role == 'student':
+        role = 0
+    else:
+        role = 1
 
     user =  db.get_user(username)
 
@@ -101,10 +156,16 @@ def login_user():
 
     try:
         if user and bcrypt.check_password_hash(user.password, client_hashed_password):
-            session.clear()
-            session.permanent = True
-            session['username'] = username
-            return url_for('home', username=username)
+            user_role = db.get_role(username)
+            # if user is student and trying to log into staff not allowed
+            # however if staff and trying log into student then also nono
+            if (user_role == 0 and role != 0) or (user_role != 0 and role == 0): 
+                return jsonify({"error": "Bad login. Try again"}), 401
+            else:
+                session.clear()
+                session.permanent = True
+                session['username'] = username
+                return url_for('home', username=username)
 
         else:
             return jsonify({"error": "Incorrect password"}), 401
@@ -129,19 +190,17 @@ def signup_user():
 
     username = sanitize_input(request.json.get("username"))
     client_hashed_password = request.json.get("password")
-    
-    # DEPRECATED - no more public key bs
-    # public_key = request.json.get("publicKey")
+    role = 0 # student defualt role
 
     if db.get_user(username) is None:
 
         hashed_password = bcrypt.generate_password_hash(
             client_hashed_password).decode('utf-8')
         
-        db.insert_user(username, hashed_password)
+        db.insert_user(username, hashed_password, role)
         session.clear()
         session.permanent = True
-        session['username'] = db.get_user(username).username
+        session['username'] = username
         return url_for('home', username=username)
     return "Error: User already exists!"
 
@@ -161,6 +220,7 @@ def home():
     current_user_username = session.get("username")
 
     if not current_user_username:
+        print("line 218")
         return redirect(url_for('login'))
 
     db_session = Session()
@@ -189,8 +249,11 @@ def home():
     
     finally:
         db_session.close()
+    
+    rooms = db.get_user_rooms(current_user_username)
 
-    return render_template("home.jinja", username=current_user_username, friends=friends, incoming_friends=incoming_requests, sent_requests=sent_requests_list)
+    return render_template("home.jinja", username=current_user_username, friends=friends, 
+                           incoming_friends=incoming_requests, sent_requests=sent_requests_list, rooms=rooms)
 
 
 @app.route("/add_friend", methods=['POST'])
@@ -208,9 +271,11 @@ def add_friend():
 
     try:
         if current_user_username != session.get("username"):
+            print("line 269")
             return redirect(url_for('login'))
     except Exception as e:
         print(e)
+        print("line 273")
         return redirect(url_for('login'))
 
     db_session = Session()
@@ -410,6 +475,71 @@ def get_friends():
     finally:
         db_session.close()
 
+@app.route("/todo", methods=["GET"])
+@login_required
+def todo():
+    user_username = session.get("username")
+    if not user_username:
+        return redirect(url_for('login'))
+
+    db_session = Session()  # Correct way to instantiate a session
+    try:
+        user = db_session.query(User).filter_by(username=user_username).first()
+        if user is None:
+            return redirect(url_for('login'))
+        todo_items = user.todo_items if user.todo_items else []
+    finally:
+        db_session.close()
+
+    return render_template("todo.jinja", username=user_username, todo_items=todo_items)
+
+@app.route("/todo/add", methods=["POST"])
+@login_required
+def add_todo():
+    data = request.json  # Ensure JSON data is received
+    description = data.get("description")
+    user_username = session.get("username")
+    user = db.get_user(user_username)
+    
+    if user and description:
+        new_todo = ToDoItem(description=description, user_id=user.username)
+        with Session() as db_session:
+            db_session.add(new_todo)
+            db_session.commit()
+            return jsonify({"success": True, "todo_id": new_todo.id}), 200
+    
+    return jsonify({"success": False, "message": "Failed to add to-do item"}), 400
+
+@app.route("/todo/update", methods=["POST"])
+@login_required
+def update_todo():
+    data = request.json  # Ensure JSON data is received
+    todo_id = data.get("todo_id")
+    completed = data.get("completed")
+    user_username = session.get("username")
+
+    with Session() as db_session:
+        todo_item = db_session.query(ToDoItem).filter_by(id=todo_id, user_id=user_username).first()
+        if todo_item:
+            todo_item.completed = completed
+            db_session.commit()
+            return jsonify({"success": True}), 200
+    return jsonify({"success": False, "message": "Failed to update to-do item"}), 400
+
+@app.route("/todo/delete", methods=["POST"])
+@login_required
+def delete_todo():
+    data = request.json  # Ensure JSON data is received
+    todo_id = data.get("todo_id")
+    user_username = session.get("username")
+
+    with Session() as db_session:
+        todo_item = db_session.query(ToDoItem).filter_by(id=todo_id, user_id=user_username).first()
+        if todo_item:
+            db_session.delete(todo_item)
+            db_session.commit()
+            return jsonify({"success": True}), 200
+    return jsonify({"success": False, "message": "Failed to delete to-do item"}), 400
 
 # route to logout
 @app.route("/logout", methods=['GET', 'POST'])

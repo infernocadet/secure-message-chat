@@ -9,6 +9,15 @@ this is equivalent to a bunch of glob imports -> import * from jquery.
 Yeah I know it's pretty ugly...
 -->
 <!DOCTYPE html>
+<style>
+    .main-background {
+        background: url('/static/images/backgroundimage.jpeg') no-repeat center center;
+        background-size: cover;
+        width: 100%;
+        position: relative;
+    }
+
+</style>
 <html>
   <head>
     <title>Secure Messaging Application</title>
@@ -27,13 +36,15 @@ Yeah I know it's pretty ugly...
     />
     {% endblock %}
 
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="/static/js/libs/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="/static/js/libs/axios.min.js"></script>
     <script src="/static/js/libs/js.cookie.min.js"></script>
+        <script src="/static/js/libs/socket.io.min.js"></script>
   </head>
-  <body>
+  <body class="main-background">
     <!-- The content from any other page goes here -->
     {% block content %} {% endblock %}
   </body>

@@ -1,0 +1,261 @@
+<!-- User profile page, accessed after logging in and clicking on my profile in home.jinja -->
+{% extends 'base.jinja' %}
+
+{% block content %}
+<style>
+    body {
+        background-color: #f8f9fa;
+        color: #343a40;
+    }
+
+    .navbar {
+        background-color: #f8f9fa;
+    }
+
+    .navbar .navbar-brand, .navbar .nav-link, .navbar .btn {
+        color: #343a40 !important;
+    }
+
+    .container {
+        margin-top: 100px;
+    }
+
+    .card {
+        background-color: #ffffff;
+        color: #343a40;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .card-header {
+        background-color: #e9ecef;
+        color: #343a40;
+        border-radius: 8px 8px 0 0;
+        padding: 15px;
+    }
+
+    .card-header h2 {
+        margin: 0;
+    }
+
+    .form-group label {
+        font-weight: bold;
+        color: #343a40;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border: none;
+        color: #ffffff;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        border: none;
+        color: #ffffff;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        border: none;
+        color: #ffffff;
+    }
+
+    .table {
+        margin-bottom: 0;
+        color: #343a40;
+    }
+
+    .table th, .table td {
+        vertical-align: middle;
+    }
+
+    .modal-header {
+        background-color: #e9ecef;
+        color: #343a40;
+    }
+
+    .modal-footer .btn {
+        border-radius: 4px;
+    }
+
+    .modal-footer .btn-secondary {
+        background-color: #6c757d;
+    }
+
+    .modal-footer .btn-primary {
+        background-color: #007bff;
+    }
+</style>
+
+
+<nav class="navbar navbar-expand-lg navbar-light">
+    <a class="navbar-brand" href="{{ url_for('home') }}">Home</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('todo') }}">To-Do List</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Profile</h2>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" value="{{ username }}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Role</label>
+                            <input type="text" class="form-control" id="role" value="{{ get_role_display(role) }}" readonly>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if role == 3 %}
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Manage Users</h2>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="confirmRoleModal" tabindex="-1" role="dialog" aria-labelledby="confirmRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmRoleModalLabel">Confirm Role Update</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to update the role of <span id="modalUsername"></span> to <span id="modalRole"></span>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmUpdateRole()">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function get_role_display(role) {
+        switch(role) {
+            case 0:
+                return "Student";
+            case 1:
+                return "Academic";
+            case 2:
+                return "Admin Staff";
+            case 3:
+                return "Admin User";
+            default:
+                return "Unknown";
+        }
+    }
+
+    {% if role == 3 %}
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchUsers();
+
+        async function fetchUsers() {
+            try {
+                const fetch_url = '{{ url_for('fetch_users') }}';
+                const response = await axios.get(fetch_url);
+                const users = response.data;
+                const usersTable = document.getElementById('usersTable');
+
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.username}</td>
+                        <td>
+                            <select class="form-control" id="role-${user.username}">
+                                <option value="0" ${user.role == 0 ? 'selected' : ''}>Student</option>
+                                <option value="1" ${user.role == 1 ? 'selected' : ''}>Academic</option>
+                                <option value="2" ${user.role == 2 ? 'selected' : ''}>Admin Staff</option>
+                                <option value="3" ${user.role == 3 ? 'selected' : ''}>Admin User</option>
+                            </select>
+                        </td>
+                        <td><button class="btn btn-primary" onclick="showConfirmModal('${user.username}')">Update Role</button></td>
+                    `;
+                    usersTable.appendChild(row);
+                }); 
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        }
+    });
+
+    let selectedUsername = '';
+    let selectedRoleValue = '';
+    let selectedRoleText = '';
+
+    function showConfirmModal(username) {
+        selectedUsername = username;
+        const roleSelect = document.getElementById(`role-${username}`);
+        selectedRoleValue = roleSelect.value;
+        selectedRoleText = roleSelect.options[roleSelect.selectedIndex].text;
+        
+        document.getElementById('modalUsername').textContent = username;
+        document.getElementById('modalRole').textContent = selectedRoleText;
+        
+        $('#confirmRoleModal').modal('show');
+    }
+
+    async function confirmUpdateRole() {
+        try {
+            const url_update = '{{ url_for('update_user_role') }}';
+            const response = await axios.post(url_update, {
+                username: selectedUsername,
+                role: selectedRoleValue
+            });
+            if (response.status !== 200) {
+                throw new Error("Failed to update user role");
+            }
+            $('#confirmRoleModal').modal('hide');
+        } catch (error) {
+            console.error('Error updating user role:', error);
+        }
+    }
+    {% endif %}
+</script>
+
+{% endblock %}

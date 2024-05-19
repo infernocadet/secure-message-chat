@@ -23,9 +23,9 @@ engine = create_engine("sqlite:///database/main.db", echo=False)
 Base.metadata.create_all(engine)
 
 # inserts a user to the database
-def insert_user(username: str, password: str):
+def insert_user(username: str, password: str, role: int):
     with Session(engine) as session:
-        user = User(username=username, password=password)
+        user = User(username=username, password=password, role=role)
         session.add(user)
         session.commit()
 
@@ -33,6 +33,11 @@ def insert_user(username: str, password: str):
 def get_user(username: str):
     with Session(engine) as session:
         return session.get(User, username)
+    
+def get_role(username: str):
+    with Session(engine) as session:
+        user = session.get(User, username)
+        return user.role
 
 def get_friends(username: str):
     with Session(engine) as session:
@@ -55,3 +60,99 @@ def remove_friend(current_username: str, friend_username: str):
             return True, None
         else:
             return False, "Friend relationship not found"
+
+# Adds user to existing room - wont be used. Wanted feature
+# def add_user_to_room(username, room_id):
+#     """
+#     Can add user to an existing room. 
+#     """
+#     with Session(engine) as session:
+#         user = session.query(User).filter_by(username=username).first()
+#         room = session.query(Room).filter_by(id=room_id).first()
+#         if user and room:
+#             room.users.append(user)
+#             session.commit()
+
+def get_user_rooms(username):
+    """
+    Retrieves all rooms a user is part of.
+    """
+    with Session(engine) as session:
+        user = session.query(User).filter_by(username=username).first()
+        if user:
+            return user.rooms
+        return []
+        
+def find_room_with_users(usernames):
+    """
+    Tries to find an existing room with given usernames. 
+    """
+    with Session(engine) as session:
+        # normalise names by sorting
+        sorted_usernames = sorted(usernames)
+
+        # query our rooms table to see if there is such a room
+        rooms = session.query(Room).all()
+        for room in rooms:
+            # get all usernames in current room
+            room_usernames = sorted([user.username for user in room.users])
+            if room_usernames == sorted_usernames:
+                return room
+        
+        # if no room found
+        return None
+
+def create_room(name: str, usernames: list) -> int:
+    """
+    Creates a new room and adds users to it.
+    """
+    with Session(engine) as session:
+
+        existing_room = find_room_with_users(usernames)
+        if existing_room:
+            return existing_room.id
+
+        # if no existing room found
+        new_room = Room(name=name)
+        session.add(new_room)
+        session.commit()
+        
+        # add users to the room 
+        for username in usernames:
+            user = session.query(User).filter_by(username=username).first()
+            if user:
+                new_room.users.append(user)
+        
+        session.commit()
+        return new_room.id
+
+def fetch_users():
+    with Session(engine) as session:
+        users = session.query(User).filter(User.role != 3).all()  # Exclude Admin User role
+        users_data = [{'username': user.username, 'role': user.role} for user in users]
+    return jsonify(users_data)
+
+def update_role(username: str, role: int):
+    with Session(engine) as session:
+        new_role = role
+        user = session.query(User).filter_by(username=username).first()
+        print(f"New role: {new_role}. Old role: {user.role}")
+        if user:
+            print("updating role now")
+            user.role = role
+            session.commit()
+        else:
+            return jsonify({'message': 'User not found'}), 404
+    return jsonify({'message': 'Role updated successfully'}), 200
+
+def insert_message(content, sender_username, room_id):
+    with Session(engine) as session:
+        message = Message(content=content, sender_username=sender_username, room_id=room_id)
+        session.add(message)
+        session.commit()
+
+
+def get_messages(room_id):
+    with Session(engine) as session:
+        messages = session.query(Message).filter_by(room_id=room_id).order_by(Message.id).all()
+        return [{'content': msg.content, 'sender': msg.sender_username} for msg in messages]

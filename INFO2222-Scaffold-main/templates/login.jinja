@@ -8,35 +8,241 @@
 
 {% block content %} 
 
-    <h1>Login</h1>
-    <p>Username</p>
-    <input id="username"/>
-    <p id="usernameHelp" style="color: red;"></p>
-    <p>Password</p>
-    <input id="password"  type="password"/>
-    <button id="togglePassword" onclick="togglePasswordVisibility()">👁️</button>
-    <button id="loginButton" onclick="login()" disabled>Login</button>
-    <p id="loginMessage" style="display: none;" disabled></p>
-    <div>
-        <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
+<style>
+    body {
+        background-color: #f8f9fa;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+    .login-container {
+        background: #ffffff; /* Changed to light background */
+        border-radius: 10px;
+        overflow: hidden;
+        display: flex;
+        width: 80%;
+        max-width: 1200px; /* Increased max-width */
+        height: 90%; /* Increased height */
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+    }
+
+    .login-image {
+        background: url('/static/images/newimage.png') no-repeat center center;
+        background-size: cover;
+        width: 50%;
+        position: relative;
+    }
+
+    .login-image::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3); /* Lighter overlay */
+    }
+
+    .login-form {
+        padding: 40px;
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background-color: #ffffff; /* Changed to light background */
+    }
+
+    .login-form h2 {
+        margin-bottom: 20px;
+        color: #333; /* Darker text color */
+        text-align: center;
+    }
+
+    .form-group label {
+        color: #555; /* Darker label color */
+    }
+
+    .form-control {
+        background: #f8f9fa; /* Light input background */
+        border: 1px solid #ccc; /* Light border */
+        color: #333; /* Darker text color */
+        margin-bottom: 15px;
+    }
+
+    .form-control:focus {
+        background: #f8f9fa; /* Light input background */
+        border: 1px solid #6200ea; /* Focus border color */
+        color: #333; /* Darker text color */
+        box-shadow: none;
+    }
+
+    .btn-primary {
+        background-color: #6200ea;
+        border: none;
+        color: #fff;
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #3700b3;
+    }
+
+    .btn-outline-secondary {
+        border: none;
+        background: transparent;
+        color: #6200ea;
+    }
+
+    .btn-outline-secondary:hover {
+        background: transparent;
+        color: #bb86fc;
+    }
+
+    .nav-tabs {
+        border-bottom: 1px solid #ddd; /* Light border */
+        margin-bottom: 20px;
+    }
+
+    .nav-tabs .nav-link {
+        color: #555; /* Darker text color */
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #6200ea;
+        background-color: transparent;
+        border-color: transparent transparent #6200ea;
+    }
+
+    .nav-tabs .nav-link:hover {
+        border-color: transparent transparent #bb86fc;
+    }
+
+    .text-danger {
+        color: #cf6679 !important;
+    }
+
+    .text-center a {
+        color: #6200ea;
+    }
+
+    .text-center a:hover {
+        color: #bb86fc;
+    }
+
+    .text-center a:focus {
+        color: #bb86fc;
+    }
+
+</style>
+
+
+
+
+
+<div class="login-container">
+    <div class="login-image"></div>
+    <div class="login-form">
+        <h2>Login</h2>
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#studentLogin">Student Login</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#staffLogin">Staff Login</a>
+            </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+            <div id="studentLogin" class="container tab-pane active"><br>
+                <form id="studentLoginForm">
+                    <div class="form-group">
+                        <label for="studentUsername">Username</label>
+                        <input type="text" id="studentUsername" class="form-control" placeholder="Enter username">
+                        <small id="studentUsernameHelp" class="form-text text-danger"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentPassword">Password</label>
+                        <div class="input-group">
+                            <input type="password" id="studentPassword" class="form-control" placeholder="Enter password">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleStudentPassword" onclick="togglePasswordVisibility('studentPassword', 'toggleStudentPassword')">👁️</button>
+                            </div>
+                        </div>
+                        <small id="studentPasswordHelp" class="form-text text-danger"></small>
+                    </div>
+                    <button type="button" id="studentLoginButton" class="btn btn-primary btn-block">Login</button>
+                    <p id="studentLoginMessage" class="text-danger text-center" style="display: none;"></p>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
+                    </div>
+                </form>
+            </div>
+            <div id="staffLogin" class="container tab-pane fade"><br>
+                <form id="staffLoginForm">
+                    <div class="form-group">
+                        <label for="staffUsername">Username</label>
+                        <input type="text" id="staffUsername" class="form-control" placeholder="Enter username">
+                        <small id="staffUsernameHelp" class="form-text text-danger"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffPassword">Password</label>
+                        <div class="input-group">
+                            <input type="password" id="staffPassword" class="form-control" placeholder="Enter password">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleStaffPassword" onclick="togglePasswordVisibility('staffPassword', 'toggleStaffPassword')">👁️</button>
+                            </div>
+                        </div>
+                        <small id="staffPasswordHelp" class="form-text text-danger"></small>
+                    </div>
+                    <button type="button" id="staffLoginButton" class="btn btn-primary btn-block">Login</button>
+                    <p id="staffLoginMessage" class="text-danger text-center" style="display: none;"></p>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+</div>
+
+
 
     <script>
 
-        document.getElementById("username").addEventListener('input', function(event) {
+        let passwordValid = false;
+        let usernameValid = false;
+
+        document.getElementById("studentUsername").addEventListener('input', function(event) {
             const username = event.target.value;
             usernameValid = validateUsername(username);
-            document.getElementById('usernameHelp').textContent = usernameValid ? '' : 'Username invalid.';
-            updateSignupButtonState();
+            document.getElementById('studentUsernameHelp').textContent = usernameValid ? '' : 'Username invalid.';
+            updateLoginButtonState('studentLoginButton');
         });
+
+        document.getElementById("staffUsername").addEventListener('input', function(event) {
+            const username = event.target.value;
+            usernameValid = validateUsername(username);
+            document.getElementById('staffUsernameHelp').textContent = usernameValid ? '' : 'Username invalid.';
+            updateLoginButtonState('staffLoginButton');
+        });
+
 
         function validateUsername(username){
             const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(username);
             return !hasSpecialChars;
         }
 
-        function updateSignupButtonState(){
-            document.getElementById('loginButton').disabled = !usernameValid;
+        function updateLoginButtonState(buttonId){
+            document.getElementById(buttonId).disabled = (!usernameValid);
         }
 
         function isValidURL(string) {
@@ -50,44 +256,52 @@
         }
 
         // function to toggle password visibility
-        function togglePasswordVisibility() {
-                const passwordInput = document.getElementById('password');
-                const toggleButton = document.getElementById('togglePassword');
-                const isPasswordVisible = passwordInput.type === 'text';
-                passwordInput.type = isPasswordVisible ? 'password' : 'text';
-                toggleButton.textContent = isPasswordVisible ? '👁️' : '🚫';
-            }
+        function togglePasswordVisibility(passwordId, buttonId){
+            const passwordInput = document.getElementById(passwordId);
+            const toggleButton = document.getElementById(buttonId);
+            const isPasswordVisible = passwordInput.type === 'text';
+            passwordInput.type = isPasswordVisible ? 'password' : 'text';
+            toggleButton.textContent = isPasswordVisible ? '👁️' : '🚫';
+        }
+
+        document.getElementById('studentLoginButton').addEventListener('click', async () => {
+            const username = $("#studentUsername").val();
+            const password = $("#studentPassword").val();
+            login(username, password, 'student');
+        });
+
+        document.getElementById('staffLoginButton').addEventListener('click', async () => {
+            const username = $("#staffUsername").val();
+            const password = $("#staffPassword").val();
+            login(username, password, 'staff');
+        });
 
         // async function to login the user when user clicks on login button
-        async function login() {
-            let loginButton = document.getElementById('loginButton');
+        
+        async function login(username, password, role){
+            let loginButton = document.getElementById(role + 'LoginButton');
             loginButton.disabled = true;
-            // URL for the login_user function in the server
             let loginURL = "{{ url_for('login_user') }}";
-            let username = $("#username").val();
-            let password = $("#password").val();
             let hashedPassword = CryptoJS.SHA256(password).toString();
 
             let res = await axios.post(loginURL, {
-                username: username, // using jQuery to select HTML element with id=username. .val() gets the value of that input field
-                password: hashedPassword
+                username: username,
+                password: hashedPassword,
+                role: role
             })
             .then(function (response){
                 window.location.href = response.data;
             })
             .catch(function (error) {
-                console.error('Error:', error)
-                loginButton.disabled = false; // re-enable button is login fails
+                console.error('Error:', error);
+                loginButton.disabled = false;
 
-                // check error response from server
                 if (error.response && error.response.data) {
-                    // display error message
-                    document.getElementById('loginMessage').textContent = error.response.data.error;
+                    document.getElementById(role + 'LoginMessage').textContent = error.response.data.error;
                 } else {
-                    // display generic error message
-                    document.getElementById('loginMessage').textContent = "An error occurred";
+                    document.getElementById(role + 'LoginMessage').textContent = "An error occurred";
                 }
-                 document.getElementById('loginMessage').style.display = "block";
+                document.getElementById(role + 'LoginMessage').style.display = "block";
             });
         }
 

@@ -8,25 +8,172 @@ Sign up page, pretty much the same as login.
 
 
 {% block content %} 
-    <h1>Sign Up</h1>
-    <p>Username</p>
-    <input id="username"/>
-    <p id="usernameHelp" style="color: red;"></p>
-    <p>Password</p>
-    <div style="position: relative;">
-        <input id="password" type="password" style="padding-right: 30px;"/>
-        <button id="togglePassword" style="position: relative; right: 0; top: 0;" onclick="togglePasswordVisibility()">👁️</button>
-    </div>
-    <p id="passwordHelp" style="color: red;"></p>
-    <button id="signupButton" disabled>Sign up</button>
-    <div>
-        <a href="{{ url_for('login') }}">Already have an account? Log in here</a>
-    </div>
+<style>
+    body {
+        background-color: #f8f9fa;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
 
-    {# DEPRECATED ENCRYPTION FUNCTIONS #}
-    {# <script src="/static/js/signup/signup-indexeddb.js"></script> #}
-    {# <script src="/static/js/signup/signup-keypairgeneration.js"></script> #}
-    {# <script src="/static/js/signup/signup-signup.js"></script> #}
+    .auth-container, .login-container {
+        background: #ffffff; /* Light background */
+        border-radius: 10px;
+        overflow: hidden;
+        display: flex;
+        width: 80%;
+        max-width: 1200px; /* Max width */
+        height: 90%; /* Height */
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+    }
+
+    .auth-image, .login-image {
+        background: url('/static/images/newimage.png') no-repeat center center;
+        background-size: cover;
+        width: 60%;
+        position: relative;
+    }
+
+    .auth-image::before, .login-image::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0); /* Lighter overlay */
+    }
+
+    .auth-form, .login-form {
+        padding: 40px;
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background-color: #ffffff; /* Light background */
+    }
+
+    .auth-form h2, .login-form h2 {
+        margin-bottom: 20px;
+        color: #333; /* Darker text color */
+        text-align: center;
+    }
+
+    .form-group label {
+        color: #555; /* Darker label color */
+    }
+
+    .form-control {
+        background: #f8f9fa; /* Light input background */
+        border: 1px solid #ccc; /* Light border */
+        color: #333; /* Darker text color */
+        margin-bottom: 15px;
+    }
+
+    .form-control:focus {
+        background: #f8f9fa; /* Light input background */
+        border: 1px solid #6200ea; /* Focus border color */
+        color: #333; /* Darker text color */
+        box-shadow: none;
+    }
+
+    .btn-primary {
+        background-color: #6200ea;
+        border: none;
+        color: #fff;
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #3700b3;
+    }
+
+    .btn-outline-secondary {
+        border: none;
+        background: transparent;
+        color: #6200ea;
+    }
+
+    .btn-outline-secondary:hover {
+        background: transparent;
+        color: #bb86fc;
+    }
+
+    .nav-tabs {
+        border-bottom: 1px solid #ddd; /* Light border */
+        margin-bottom: 20px;
+    }
+
+    .nav-tabs .nav-link {
+        color: #555; /* Darker text color */
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #6200ea;
+        background-color: transparent;
+        border-color: transparent transparent #6200ea;
+    }
+
+    .nav-tabs .nav-link:hover {
+        border-color: transparent transparent #bb86fc;
+    }
+
+    .text-danger {
+        color: #cf6679 !important;
+    }
+
+    .text-center a {
+        color: #6200ea;
+    }
+
+    .text-center a:hover {
+        color: #bb86fc;
+    }
+
+    .text-center a:focus {
+        color: #bb86fc;
+    }
+</style>
+
+
+
+<div class="auth-container">
+    <div class="auth-image"></div>
+    <div class="auth-form">
+        <h2>Sign Up</h2>
+        <form>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="form-control" placeholder="Enter username">
+                <small id="usernameHelp" class="form-text text-danger"></small>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-group">
+                    <input type="password" id="password" class="form-control" placeholder="Enter password">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility('password', 'togglePassword')">👁️</button>
+                    </div>
+                </div>
+                <small id="passwordHelp" class="form-text text-danger"></small>
+            </div>
+            <button type="button" id="signupButton" class="btn btn-primary btn-block" disabled>Sign Up</button>
+            <div class="text-center mt-3">
+                <a href="{{ url_for('login') }}">Already have an account? Log in here</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+
 
     <script>
         let passwordValid = false;
