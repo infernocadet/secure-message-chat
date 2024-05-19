@@ -156,3 +156,25 @@ def get_messages(room_id):
     with Session(engine) as session:
         messages = session.query(Message).filter_by(room_id=room_id).order_by(Message.id).all()
         return [{'content': msg.content, 'sender': msg.sender_username} for msg in messages]
+
+
+def fetch_articles(app_session):
+    with Session(engine) as session:
+        articles = session.query(Article).all()
+        articles_list = []
+        current_user_role = app_session.get('role')
+        current_user_username = app_session.get('username')
+        for article in articles:
+            is_editable = (article.author_id == current_user_username) or (current_user_role != 0)
+            is_deletable = (current_user_role != 0 or article.author_id == current_user_username)
+            articles_list.append({
+                'id': article.id,
+                'title': article.title,
+                'content': article.content,
+                'author_id': article.author_id,
+                'author_role': article.author.role,
+                'created_at': article.created_at,
+                'is_editable': is_editable,
+                'is_deletable': is_deletable,
+            })
+        return articles_list

@@ -14,7 +14,7 @@ from sqlalchemy import String, Table, Column, Integer, ForeignKey, Text, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import Dict, List
 from sqlalchemy import DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 # for friends database, using Table, Column, Integer, ForeignKey & relationship
 
 # data models
@@ -44,6 +44,8 @@ class User(Base):
     password: Mapped[str] = mapped_column(String)
     role: Mapped[int] = mapped_column(Integer) # [0, 1, 2, 3] = [student, academic, admin-staff, admin-user]
     todo_items = relationship("ToDoItem", back_populates="user")
+    articles = relationship('Article', back_populates='author', cascade="all, delete-orphan")
+    comments = relationship('Comment', back_populates='author', cascade="all, delete-orphan")
     
     # deprecated - no more keys
     # public_key: Mapped[str] = mapped_column(Text, nullable=True) # Storing public key as text
@@ -121,12 +123,12 @@ class Article(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    author_id = Column(Integer, ForeignKey('user.username'))  # Make sure ForeignKey references are correct
+    author_id = Column(String, ForeignKey('user.username'))  # Correct table name
     author = relationship('User', back_populates='articles')
-    # created_at = Column(DateTime, default=datetime.utcnow)  # Auto-set the date on creation
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    comments = relationship('Comment', back_populates='article', cascade="all, delete-orphan")
 
-
-
+# Comment model
 class Comment(Base):
     __tablename__ = 'comments'
     id = Column(Integer, primary_key=True)
@@ -135,8 +137,4 @@ class Comment(Base):
     author_id = Column(String, ForeignKey('user.username')) 
     article = relationship('Article', back_populates='comments')
     author = relationship('User', back_populates='comments')
-
-
-User.articles = relationship('Article', back_populates='author', cascade='all, delete-orphan')
-User.comments = relationship('Comment', back_populates='author', cascade='all, delete-orphan')
-Article.comments = relationship('Comment', back_populates='article', cascade='all, delete-orphan')
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

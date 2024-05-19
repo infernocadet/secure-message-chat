@@ -4,7 +4,8 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-from articles import fetch_articles
+
+import os
 from flask import Flask, render_template, request, abort, url_for, jsonify, redirect
 from flask import session
 from flask_session import Session
@@ -36,7 +37,7 @@ app.config['SESSION_TYPE'] = 'SQLAlchemy'
 app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['SESSION_COOKIE_SECURE'] = True # secure cookies only sent over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # cookies not accessible over javascript
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=100)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # cookies sent on same-site requests
 socketio = SocketIO(app)
 # CORS(app)  # This will enable CORS for all routes
@@ -115,6 +116,7 @@ def profile():
 
     return render_template("profile.jinja", username=user_username, role=user_role)
 
+
 # fetches users for admin
 @app.route("/fetch_users", methods=['GET'])
 @login_required
@@ -163,8 +165,10 @@ def login_user():
                 return jsonify({"error": "Bad login. Try again"}), 401
             else:
                 session.clear()
+                print("just cleared session !!!!!!!!!!!")
                 session.permanent = True
                 session['username'] = username
+                session['role'] = user_role
                 return url_for('home', username=username)
 
         else:
@@ -199,8 +203,11 @@ def signup_user():
         
         db.insert_user(username, hashed_password, role)
         session.clear()
+        print("just cleared session !!!!!!!!!!!singup")
+
         session.permanent = True
         session['username'] = username
+        session['role'] = role
         return url_for('home', username=username)
     return "Error: User already exists!"
 
@@ -546,6 +553,7 @@ def delete_todo():
 @login_required
 def logout():
     username = session.get('username')
+    print(username, "IS GOING TO LOG OUT !!!! NOOOOO")
     if username:
         session_id = user_sessions.get(username)
         if session_id:
@@ -560,6 +568,8 @@ def logout():
 
     session.pop('username', None)  # securely remove user details
     session.clear()  # clear all session data
+    print("just cleared session !!!!!!!!!!! logout")
+
     if request.method == "GET":
         response = redirect(url_for('index'))
         response.headers['Clear-Site-Data'] = '"cookies"'  # Clear cookies in supporting browsers
@@ -567,17 +577,10 @@ def logout():
     return '', 204 # no content to return for a beacon request    
 
 
-@app.after_request
-def add_security_headers(response):
-    response.headers['Cache-Control'] = 'no-store'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
-
 @app.route("/knowledge_repository")
+@login_required
 def knowledge_repository():
-    # Fetch data from your database or service layer
-    articles = fetch_articles()  # This should return a list of article objects
+    articles = db.fetch_articles(session)  
     return render_template("knowledge_repository.jinja", articles=articles)
 
 @app.route('/post_article', methods=['POST'])
@@ -599,7 +602,34 @@ def post_article():
         new_article = Article(title=title, content=content, author=user)
         db_session.add(new_article)
         db_session.commit()
-        return jsonify({'message': 'Article created', 'article_id': new_article.id}), 201
+        return jsonify({'message': 'Article created', 'title': title, 'content': content, 'article_id': new_article.id}), 201
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({'error': 'Database error', 'details': str(e)}), 500
+    finally:
+        db_session.close()
+
+@app.route('/edit_article', methods=['PUT'])
+@login_required
+def edit_article():
+    article_id = request.json.get('id')
+    new_title = request.json.get('title')
+    new_content = request.json.get('content')
+    username = session.get('username')
+
+    db_session = Session()
+    try:
+        article = db_session.query(Article).filter_by(id=article_id).first()
+        if not article:
+            return jsonify({'error': 'Article not found'}), 404
+
+        if article.author_id != username and db.get_role(username) == 0:
+            return jsonify({'error': 'You do not have permission to edit this article'}), 403
+
+        article.title = new_title
+        article.content = new_content
+        db_session.commit()
+        return jsonify({'message': 'Article updated', 'article_id': article.id}), 200
     except Exception as e:
         db_session.rollback()
         return jsonify({'error': 'Database error', 'details': str(e)}), 500
@@ -607,12 +637,15 @@ def post_article():
         db_session.close()
 
 
-@app.route('/get_my_posts', methods=['GET'])
+@app.route('/post_comment', methods=['POST'])
 @login_required
-def get_my_posts():
-    username = session.get('username')
-    if not username:
-        return jsonify({'error': 'Session not found'}), 403
+def post_comment():
+    content = request.json.get('content')
+    article_id = request.json.get('article_id')
+    username = session.get('username')  # Get username from session
+
+    if not content or not article_id:
+        return jsonify({'error': 'Content and article ID are required'}), 400
 
     db_session = Session()
     try:
@@ -620,35 +653,59 @@ def get_my_posts():
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        articles = db_session.query(Article).filter_by(author=user).all()
-        articles_response = []
-        for article in articles:
-            #! error here
-            # created_at = article.created_at.isoformat() if article.created_at else "Unknown date"
-            articles_response.append({
-                'title': article.title,
-                'content': article.content,
-                # 'created_at': created_at
-            })
-        return jsonify(articles_response)
+        new_comment = Comment(content=content, article_id=article_id, author_id=user.username)
+        db_session.add(new_comment)
+        db_session.commit()
+        return jsonify({'message': 'Comment added', 'comment_id': new_comment.id}), 201
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({'error': 'Database error', 'details': str(e)}), 500
     finally:
         db_session.close()
 
+@app.route('/get_comments/<int:article_id>', methods=['GET'])
+@login_required
+def get_comments(article_id):
+    db_session = Session()
+    try:
+        comments = db_session.query(Comment).filter_by(article_id=article_id).all()
+        comments_response = [
+            {
+                'id': comment.id,
+                'content': comment.content,
+                'author_id': comment.author_id,
+                'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            } for comment in comments
+        ]
+        return jsonify(comments_response)
+    finally:
+        db_session.close()
 
-
-@app.route('/post_comment', methods=['POST'])
-def post_comment():
-    article_id = request.json.get('article_id')
-    content = request.json.get('content')
-    if not content:
-        return jsonify({'error': 'Content is required'}), 400
+@app.route('/delete_article', methods=['DELETE'])
+@login_required
+def delete_article():
+    article_id = request.json.get('id')
+    username = session.get('username')
 
     db_session = Session()
-    new_comment = Comment(content=content, article_id=article_id, author_id=session['username'])
-    db_session.add(new_comment)
-    db_session.commit()
-    return jsonify({'message': 'Comment added', 'comment_id': new_comment.id}), 201
+    try:
+        article = db_session.query(Article).filter_by(id=article_id).first()
+        if not article:
+            return jsonify({'error': 'Article not found'}), 404
 
+        # Check if the user has the permission to delete the article
+        user_role = db.get_role(username)
+        if user_role == 0 and article.author_id != username:
+            return jsonify({'error': 'You do not have permission to delete this article'}), 403
+
+        db_session.delete(article)
+        db_session.commit()
+        return jsonify({'message': 'Article deleted', 'article_id': article.id}), 200
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({'error': 'Database error', 'details': str(e)}), 500
+    finally:
+        db_session.close()
 
 
 ###########################
@@ -665,6 +722,12 @@ def post_comment():
 #     else:
 #         return jsonify({"error": "User not found"}), 404
         
+@app.after_request
+def add_security_headers(response):
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("mycerts/smc.test.crt", "mycerts/smc.test.key"))

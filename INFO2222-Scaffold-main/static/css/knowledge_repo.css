@@ -1,53 +1,93 @@
 body {
-  background-color: #121212;
-  color: #fff;
+  background-color: #f8f9fa;
+  color: #333;
 }
 
 .sidebar {
-  background-color: #1f1f1f;
-  padding: 20px;
+  background-color: #343a40;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding-top: 20px;
 }
 
 .sidebar .nav-link {
-  color: #bbb;
+  color: #f8f9fa;
+  padding: 10px;
+  font-size: 16px;
 }
 
 .sidebar .nav-link.active {
-  color: #fff;
+  background-color: #495057;
+  color: #ffffff;
+  font-weight: bold;
 }
 
-.sidebar-right {
+.sidebar .nav-link:hover {
+  background-color: #495057;
+  color: #ffffff;
+}
+
+main {
+  margin-left: 220px; /* Width of the sidebar */
   padding: 20px;
+  background-color: #f8f9fa;
 }
 
-.sidebar-right h6 {
-  color: #bbb;
+.post-article {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.sidebar-right .nav-link {
-  color: #bbb;
+.post-article input,
+.post-article textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  font-size: 16px;
 }
 
 .post-article textarea {
-  background-color: #2c2c2c;
-  border: none;
-  color: #fff;
+  resize: none;
 }
 
-.post-article .btn-primary {
+.article {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.article h3 {
+  margin-top: 0;
+}
+
+.btn {
+  font-size: 16px;
+  border-radius: 4px;
+  padding: 10px 20px;
+}
+
+.btn-primary {
   background-color: #007bff;
   border: none;
 }
 
-.article {
-  background-color: #1f1f1f;
-  border-radius: 5px;
-  padding: 15px;
-  margin-bottom: 10px;
+.btn-primary:hover {
+  background-color: #0056b3;
 }
 
-.article .actions .btn-light {
-  background-color: #2c2c2c;
+.btn-danger {
+  background-color: #dc3545;
   border: none;
-  color: #bbb;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
 }

@@ -1,124 +1,257 @@
-{% extends 'base.jinja' %} {% block additional_css %}
-<link
-  href="{{ url_for('static', filename='css/knowledge_repo.css') }}"
-  rel="stylesheet"
-/>
-{% endblock %} {% block content %}
-<div class="container-fluid">
-  <div class="row">
-    <!-- Sidebar -->
-    {#
-    <nav class="col-md-2 d-none d-md-block bg-dark sidebar">
-      <div class="sidebar-sticky">
-        <ul class="nav flex-column">
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ url_for('index') }}">Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('search') }}">Search</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('create_article') }}"
-              >Create</a
-            >
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('activity') }}">Activity</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
-          </li>
-        </ul>
-      </div>
-    </nav>
-    #}
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/static/js/libs/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/static/js/libs/axios.min.js"></script>
+    <script src="/static/js/libs/js.cookie.min.js"></script>
+    <script src="/static/js/libs/socket.io.min.js"></script>
+    <title>Knowledge Repository</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+    <link href="{{ url_for('static', filename='css/knowledge_repo.css') }}" rel="stylesheet"/>
+</head>
+<body>
+    <div class="modal fade" id="editArticleModal" tabindex="-1" aria-labelledby="editArticleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editArticleModalLabel">Edit Article</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editArticleId">
+                    <div class="mb-3">
+                        <label for="editArticleTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="editArticleTitle">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editArticleContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="editArticleContent" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveArticle()">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-none d-md-block bg-dark sidebar">
+                <div class="sidebar-sticky">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{{ url_for('knowledge_repository') }}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('home') }}">Chat Rooms</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Search</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Create</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Activity</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
 
-    <!-- Main content -->
-    <main role="main" class="col-md-8 ml-sm-auto col-lg-9 px-4">
-      <h1 class="h2">Knowledge Repository</h1>
-      <div class="post-article">
-        <input
-          type="text"
-          id="articleTitle"
-          class="form-control"
-          placeholder="Article Title"
-        />
-        <textarea
-          class="form-control"
-          id="articleContent"
-          placeholder="Start a thread..."
-        ></textarea>
-        <button id="postButton" class="btn btn-primary mt-2">Post</button>
-        <button id="postButton" class="btn btn-primary mt-2" onclick="logout()">
-          Logout
-        </button>
-      </div>
-      <div id="articles"></div>
-    </main>
-  </div>
-</div>
+            <!-- Main content -->
+            <main role="main" class="col-md-10 ml-sm-auto col-lg-10 px-4">
+                <h1 class="h2">Knowledge Repository</h1>
+                <div class="post-article mb-4">
+                    <input
+                        type="text"
+                        id="articleTitle"
+                        class="form-control mb-2"
+                        placeholder="Article Title"
+                    />
+                    <textarea
+                        class="form-control mb-2"
+                        id="articleContent"
+                        placeholder="Start a thread..."
+                        rows="4"
+                    ></textarea>
+                    <button id="postButton" class="btn btn-primary mt-2">Post</button>
+                    <button class="btn btn-danger mt-2" onclick="logout()">Logout</button>
+                </div>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    axios
-      .get("/get_my_posts")
-      .then(function (response) {
-        const articlesDiv = document.getElementById("articles");
-        response.data.forEach((article) => {
-          const newArticle = `<div class="article">
-                                <h3>${article.title}</h3>
-                                <p>${article.content}</p>
-                                <small>${new Date(
-                                  article.created_at
-                                ).toLocaleString()}</small>
-                              </div>`;
-          articlesDiv.innerHTML += newArticle;
+                <div id="articles">
+                    {% for article in articles %}
+                        <div class="article mb-4 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h3>{{ article.title }}</h3>
+                                    <p>{{ article.content }}</p>
+                                    <small>By {{ article.author_id }} ({{ get_role_display(article.author_role) }}) on {{ article.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                </div>
+                                <div>
+                                    {% if article.is_editable %}
+                                        <button class="btn btn-secondary btn-sm" onclick="editArticle('{{ article.id }}', '{{ article.title }}', '{{ article.content }}')">Edit</button>
+                                    {% endif %}
+                                    {% if article.is_deletable %}
+                                        <button class="btn btn-danger btn-sm" onclick="deleteArticle('{{ article.id }}')">Delete</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- Comment Section -->
+                            <div class="comment-section mt-3">
+                                <textarea class="form-control mb-2" id="commentContent{{ article.id }}" placeholder="Add a comment..." rows="2"></textarea>
+                                <button class="btn btn-primary btn-sm mb-2" onclick="postComment('{{ article.id }}')">Post Comment</button>
+                                <div id="comments{{ article.id }}">
+                                    {% for comment in article.comments %}
+                                        <div class="comment mb-2">
+                                            <p>{{ comment.content }}</p>
+                                            <small>By {{ comment.author_id }} on {{ comment.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </main>
+        </div>
+    </div>
+    <script>
+        document.getElementById("postButton").addEventListener("click", function () {
+            var content = document.getElementById("articleContent").value;
+            var title = document.getElementById("articleTitle").value;
+            axios
+                .post("/post_article", {
+                    title: title,
+                    content: content,
+                })
+                .then(function (response) {
+                    console.log(response.data);
+                    // Add article to the front end dynamically
+                    var articlesDiv = document.getElementById("articles");
+                    var displayTitle = response.data.title || title;
+                    var newArticle = `<div class="article mb-4 p-3 border rounded">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                          <div>
+                                            <h3>${displayTitle}</h3>
+                                            <p>${content}</p>
+                                            <small>Just now</small>
+                                          </div>
+                                          <div>
+                                            <button class="btn btn-secondary btn-sm" onclick="editArticle('${response.data.article_id}', '${displayTitle}', '${content}')">Edit</button>
+                                            <button class="btn btn-danger btn-sm" onclick="deleteArticle('${response.data.article_id}')">Delete</button>
+                                          </div>
+                                        </div>
+                                        <div class="comment-section mt-3">
+                                            <textarea class="form-control mb-2" id="commentContent${response.data.article_id}" placeholder="Add a comment..." rows="2"></textarea>
+                                            <button class="btn btn-primary btn-sm mb-2" onclick="postComment('${response.data.article_id}')">Post Comment</button>
+                                            <div id="comments${response.data.article_id}"></div>
+                                        </div>
+                                      </div>`;
+                    articlesDiv.innerHTML += newArticle;
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
         });
-      })
-      .catch(function (error) {
-        console.error("Error fetching posts:", error);
-      });
-  });
 
-  document.getElementById("postButton").addEventListener("click", function () {
-    var content = document.getElementById("articleContent").value;
-    var title = document.getElementById("articleTitle").value;
-    axios
-      .post("/post_article", {
-        title: title, // Assuming you want to add a title in the future
-        content: content,
-      })
-      .then(function (response) {
-        console.log(response.data);
-        // Add article to the front end dynamically
-        var articlesDiv = document.getElementById("articles");
-        var displayTitle = response.data.title || title;
-        var newArticle = `<div class="article">
-                          <h3>${displayTitle}</h3>
-                          <p>${content}</p>
-                          <small>Just now</small>
-                        </div>`;
-        articlesDiv.innerHTML += newArticle;
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
-  });
-  // when window is closed, user logs out
-  window.addEventListener("beforeunload", function (event) {
-    navigator.sendBeacon("{{ url_for('logout') }}");
-  });
+        function get_role_display(role) {
+            switch(role) {
+                case 0:
+                    return "Student";
+                case 1:
+                    return "Academic";
+                case 2:
+                    return "Admin Staff";
+                case 3:
+                    return "Admin User";
+                default:
+                    return "Unknown";
+            }
+        }
 
-  // function to logout
-  function logout() {
-    // Clear the browser session history
-    window.history.pushState(null, null, window.location.href);
-    window.onpopstate = function () {
-      window.history.go(1);
-    };
+        function editArticle(id, title, content) {
+            document.getElementById('editArticleId').value = id;
+            document.getElementById('editArticleTitle').value = title;
+            document.getElementById('editArticleContent').value = content;
+            $('#editArticleModal').modal('show');
+        }
 
-    // Redirect to the logout URL
-    window.location.href = "{{ url_for('logout') }}";
-  }
-</script>
-{% endblock %}
+        function saveArticle() {
+            var id = document.getElementById('editArticleId').value;
+            var title = document.getElementById('editArticleTitle').value;
+            var content = document.getElementById('editArticleContent').value;
+            axios
+                .put('/edit_article', {
+                    id: id,
+                    title: title,
+                    content: content
+                })
+                .then(function (response) {
+                    console.log(response.data);
+                    $('#editArticleModal').modal('hide');
+                    location.reload(); // Reload the page to see changes
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+        }
+
+        function deleteArticle(id) {
+            if (confirm("Are you sure you want to delete this article?")) {
+                axios
+                    .delete('/delete_article', {
+                        data: { id: id }
+                    })
+                    .then(function (response) {
+                        console.log(response.data);
+                        location.reload(); // Reload the page to see changes
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            }
+        }
+
+        function postComment(articleId) {
+            var content = document.getElementById('commentContent' + articleId).value;
+            axios
+                .post('/post_comment', {
+                    content: content,
+                    article_id: articleId
+                })
+                .then(function (response) {
+                    console.log(response.data);
+                    var commentsDiv = document.getElementById('comments' + articleId);
+                    var newComment = `<div class="comment mb-2">
+                                        <p>${content}</p>
+                                        <small>Just now</small>
+                                      </div>`;
+                    commentsDiv.innerHTML += newComment;
+                    document.getElementById('commentContent' + articleId).value = '';
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+        }
+
+        // function to logout
+        function logout() {
+            window.history.pushState(null, null, window.location.href);
+            window.onpopstate = function () {
+                window.history.go(1);
+            };
+
+            window.location.href = "{{ url_for('logout') }}";
+        }
+    </script>
+
+</body>
+</html>
